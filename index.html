@@ -122,17 +122,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
 
   <section>
     <h2>Google ドライブ</h2>
-    <p class="hint" id="gdStatus">未設定です。下の「送信先の設定」を開いて入力してください。</p>
+    <p class="hint" id="gdStatus">合言葉が未入力です。下の「合言葉の設定」を開いて入力してください。</p>
     <div class="controls" style="margin-top:8px">
       <button id="gdRetry" hidden>未送信を再送</button>
     </div>
     <details id="gdDetails">
-      <summary>送信先の設定</summary>
-      <label for="gdUrl">ウェブアプリの URL（Apps Script の「デプロイ」で表示されるもの）</label>
-      <input id="gdUrl" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <label for="gdToken">合言葉（Apps Script の TOKEN と同じもの）</label>
-      <input id="gdToken" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <summary>合言葉の設定</summary>
+      <label for="gdToken">合言葉（研究室で共通。分からなければ管理している人に聞いてください）</label>
+      <input id="gdToken" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
       <button id="gdTest" style="margin-top:10px;width:100%">接続を確認</button>
+      <details>
+        <summary>送信先 URL（通常は変更不要）</summary>
+        <label for="gdUrl">Apps Script のウェブアプリの URL。空にすると初期値に戻ります</label>
+        <input id="gdUrl" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </details>
     </details>
   </section>
 
@@ -215,6 +218,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   const C = window.InsoleCore, G = window.INSOLE_GEOMETRY;
   const DEFAULT_SVC = "5d65dfcc-996b-4376-868e-82196f0962e1";
   const DEFAULT_NOTIFY = "a8a5068c-a6f7-d44d-2c89-e77c8bd8aaba";
+  // Google ドライブの受け口（Apps Script）。保存先は Apps Script 側の FOLDER_ID で決まる。合言葉はここに書かない
+  const DEFAULT_GD_URL = "https://script.google.com/macros/s/AKfycbwwqPaETe0MKLARdozrvRkUh9fhX9iWa9LaHTW8a0_ZHeMh2ixnncHEPXiu1U8Ll9Qh/exec";
   const SENSOR_COLORS = ["#1f77b4","#ff7f0e","#2ca02c","#d62728"];
   const PLOT_POINTS = 400;
   const ZERO_N = C.FS;           // ゼロ点 = 最初の1秒（40 サンプル）
@@ -930,8 +935,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   // ---- Google ドライブへのアップロード（Apps Script 経由。5センサー版アプリと同じ受け口を使える） ----
   ["gdUrl","gdToken"].forEach(f => {
     const v = store.get(f); if (v) $(f).value = v;
-    $(f).addEventListener("change", () => { store.set(f, $(f).value.trim()); gdShow(); });
+    $(f).addEventListener("change", () => {
+      if (f === "gdUrl" && !$(f).value.trim()) $(f).value = DEFAULT_GD_URL;
+      store.set(f, $(f).value.trim() === DEFAULT_GD_URL ? "" : $(f).value.trim());  // 初期値のままなら保存しない（初期値が変わったら追従する）
+      gdShow(); if (f === "gdToken") flush();
+    });
   });
+  if (!$("gdUrl").value) $("gdUrl").value = DEFAULT_GD_URL;
+  if (!$("gdToken").value) $("gdDetails").open = true;
 
   // 送れなかったデータは端末内（IndexedDB）に残して、あとで再送する
   const idb = () => new Promise((res, rej) => {
@@ -951,7 +962,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     const ready = $("gdUrl").value.trim() && $("gdToken").value.trim();
     $("gdStatus").className = "hint";
     $("gdStatus").textContent = gdBusy ? "アップロード中…"
-      : !ready ? (n ? `未設定です。未送信のデータが ${n} 件あります。下の「送信先の設定」を開いて入力してください。` : "未設定です。下の「送信先の設定」を開いて入力してください。")
+      : !ready ? (n ? `合言葉が未入力です。未送信のデータが ${n} 件あります。下の「合言葉の設定」を開いて入力してください。` : "合言葉が未入力です。下の「合言葉の設定」を開いて入力してください。")
       : gdLast || "記録を停止すると自動でアップロードします。";
   }
 
