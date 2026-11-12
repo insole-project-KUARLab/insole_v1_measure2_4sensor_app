@@ -9,7 +9,7 @@
 | スマホ | ブラウザ |
 |---|---|
 | Android | Chrome |
-| iPhone | [Bluefy](https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055)（App Store から入れる） |
+| iPhone | Bluefy（App Store で「Bluefy」を検索して入れる） |
 
 iPhone の Safari や Chrome は Bluetooth に対応していないため使えません。
 
