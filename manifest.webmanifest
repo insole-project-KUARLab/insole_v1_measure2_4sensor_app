@@ -1,0 +1,16 @@
+{
+  "name": "インソール計測アプリ（4センサー版）",
+  "short_name": "インソール4",
+  "description": "4センサーのインソールを左右同時に Bluetooth で記録し、力のグラフと足型ビューを表示します",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef1f4",
+  "theme_color": "#24507a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

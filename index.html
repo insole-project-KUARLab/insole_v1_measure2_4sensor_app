@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="googlebot" content="noindex, nofollow">
+<title>インソール計測 4センサー</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#24507a">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#1c2a3a; --sub:#5b6b7c; --line:#d3dae2;
+  --left:#0f8b8d; --right:#d9822b; --rec:#c8323a; --ok:#2e7d4f; --warn:#a15c00; --brand:#24507a;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#141b23;--panel:#1d2631;--ink:#e6edf3;--sub:#9aa9b8;--line:#33404e;
+    --left:#3cc2c4;--right:#f0a456;--rec:#ff5c64;--ok:#5fcf8c;--warn:#f0b35a;--brand:#7fb0e0;color-scheme:dark;}
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;
+  -webkit-text-size-adjust:100%}
+main{max-width:720px;margin:0 auto;padding:16px 14px 40px}
+h1{font-size:1.35rem;margin:4px 0 2px;letter-spacing:.02em}
+h1 small{font-size:.8rem;color:var(--brand);font-weight:600;margin-left:6px}
+.lead{color:var(--sub);font-size:.85rem;margin:0 0 16px;line-height:1.6}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h2{font-size:1rem;margin:0 0 10px}
+h3{font-size:.9rem;margin:16px 0 4px;color:var(--sub);font-weight:600}
+label{display:block;font-size:.8rem;color:var(--sub);margin:8px 0 3px}
+input,select{width:100%;font:inherit;font-size:1rem;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.grid2 label{margin-top:0}
+.check{display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--ink);font-size:.9rem}
+.check input{width:auto}
+#namePreview b{color:var(--ink);font-weight:600;word-break:break-all}
+details summary{cursor:pointer;color:var(--sub);font-size:.85rem;margin-top:10px}
+.hint{font-size:.8rem;color:var(--sub);margin:8px 0 0;line-height:1.6}
+.hint.err{color:var(--rec)}
+button,.filebtn{font:inherit;font-size:1rem;font-weight:600;border:0;border-radius:10px;padding:12px 14px;cursor:pointer;color:#fff;background:var(--ink);text-align:center;display:block;position:relative}
+@media (prefers-color-scheme:dark){button,.filebtn{color:#141b23}}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-within{outline:3px solid var(--left);outline-offset:2px}
+.foot{border-left:6px solid var(--c)}
+.foot h2{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--c)}
+.foot .state{font-size:.8rem;font-weight:500;color:var(--sub);text-align:right}
+.foot .state.on{color:var(--ok)}
+.foot button{background:var(--c);width:100%}
+.foot canvas{width:100%;height:150px;display:block;margin-top:10px;background:var(--bg);border-radius:8px}
+.alert{font-size:.8rem;color:var(--rec);font-weight:600;margin-top:6px}
+.alert.warn{color:var(--warn)}
+.stats{display:flex;gap:4px 14px;font-size:.8rem;color:var(--sub);margin-top:6px;flex-wrap:wrap}
+.stats b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.legend{display:flex;gap:10px;font-size:.75rem;color:var(--sub);margin:-4px 0 12px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:3px;margin-right:4px;vertical-align:middle;background:var(--k)}
+.controls{display:grid;grid-template-columns:1fr;gap:8px}
+#recBtn{background:var(--rec);font-size:1.1rem;padding:16px}
+#recBtn.recording{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.7}}
+@media (prefers-reduced-motion:reduce){#recBtn.recording{animation:none}}
+.subBtn{background:var(--sub)}
+[hidden]{display:none !important}
+#timer{text-align:center;font-size:2rem;font-variant-numeric:tabular-nums;margin:4px 0 10px}
+#msg{font-size:.85rem;color:var(--sub);min-height:1.2em;margin-top:10px;white-space:pre-wrap}
+#msg.err{color:var(--rec)}
+.unsupported{background:var(--rec);color:#fff;border-radius:10px;padding:12px;font-size:.9rem;margin-bottom:12px;display:none}
+.tabs{display:flex;gap:6px;margin-bottom:6px}
+.tabs button{flex:1;background:transparent;color:var(--ink);border:2px solid var(--line);padding:9px}
+.tabs button[aria-selected="true"]{background:var(--c);border-color:var(--c);color:#fff}
+@media (prefers-color-scheme:dark){.tabs button[aria-selected="true"]{color:#141b23}}
+#forceTitle{font-size:.85rem;color:var(--sub);margin:6px 0 0;word-break:break-all}
+.chart{width:100%;height:210px;display:block}
+#footCanvas{width:100%;display:block;margin-top:8px}
+.footBar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+#imgView{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;
+  padding:calc(16px + env(safe-area-inset-top,0px)) 12px calc(16px + env(safe-area-inset-bottom,0px))}
+#imgView .box{background:var(--panel);border-radius:14px;padding:14px;max-width:720px;width:100%;max-height:100%;overflow:auto}
+#imgView p{margin:0 0 10px;font-size:.9rem}
+#imgView img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:6px;margin-bottom:10px;-webkit-touch-callout:default}
+#imgView .close{width:100%}
+.forceActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.filebtn input{position:absolute;opacity:0;width:1px;height:1px}
+#forceEmpty{color:var(--sub);font-size:.9rem;margin:4px 0 12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>インソール計測アプリ<small>4センサー版</small></h1>
+  <p class="lead">計測情報を入力し、左右のマイコンを接続してから「記録開始」を押してください。記録を停止すると、データは自動で Google ドライブに保存されます。</p>
+
+  <div class="unsupported" id="unsupported">このブラウザは Web Bluetooth に対応していません。Android は Chrome、iPhone は Bluefy アプリで開いてください。保存済み CSV のグラフ表示はこのままでも使えます。</div>
+
+  <section>
+    <h2>計測情報</h2>
+    <div class="grid2">
+      <div><label for="size">サイズ（cm）</label><input id="size" type="number" inputmode="decimal" step="0.5" min="10" max="35" placeholder="例: 18.5"></div>
+      <div><label for="subject">被験者 ID</label><input id="subject" list="subjectList" placeholder="例: S0001" autocapitalize="characters" autocorrect="off" spellcheck="false"><datalist id="subjectList"></datalist></div>
+    </div>
+    <div class="grid2">
+      <div><label for="exp">実験名（英数字）</label><input id="exp" placeholder="例: walk" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="latin"></div>
+      <div><label for="trial">試行回数</label><input id="trial" type="number" inputmode="numeric" min="1" value="1"></div>
+    </div>
+    <p class="hint" id="namePreview"></p>
+    <details>
+      <summary>BLE 設定</summary>
+      <label for="svc">サービス UUID</label>
+      <input id="svc" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <label for="notify">通知キャラクタリスティック UUID</label>
+      <input id="notify" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <label class="check"><input type="checkbox" id="anySide"> 左右を区別せずに、insole で始まる機器をすべて一覧に表示</label>
+      <label class="check"><input type="checkbox" id="showAll"> すべての Bluetooth 機器を一覧に表示（確認用）</label>
+      <p class="hint">通常は「左足に接続」で insole_L_…、「右足に接続」で insole_R_… の機器だけが一覧に出ます。本体の左右は、正面のボタンを約1.2秒押し続けると切り替わります。</p>
+    </details>
+  </section>
+
+  <section>
+    <h2>Google ドライブ</h2>
+    <p class="hint" id="gdStatus">未設定です。下の「送信先の設定」を開いて入力してください。</p>
+    <div class="controls" style="margin-top:8px">
+      <button id="gdRetry" hidden>未送信を再送</button>
+    </div>
+    <details id="gdDetails">
+      <summary>送信先の設定</summary>
+      <label for="gdUrl">ウェブアプリの URL（Apps Script の「デプロイ」で表示されるもの）</label>
+      <input id="gdUrl" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <label for="gdToken">合言葉（Apps Script の TOKEN と同じもの）</label>
+      <input id="gdToken" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button id="gdTest" style="margin-top:10px;width:100%">接続を確認</button>
+    </details>
+  </section>
+
+  <section class="foot" style="--c:var(--left)" id="footL">
+    <h2>左足 <span class="state">未接続</span></h2>
+    <button data-side="L">左足に接続</button>
+    <div class="alert" hidden></div>
+    <canvas></canvas>
+    <div class="stats"><span>サンプル <b class="n">0</b></span><span>受信 <b class="hz">–</b> Hz</span><span>形式 <b class="fmt">–</b></span><span>欠け <b class="miss">0</b></span></div>
+  </section>
+
+  <section class="foot" style="--c:var(--right)" id="footR">
+    <h2>右足 <span class="state">未接続</span></h2>
+    <button data-side="R">右足に接続</button>
+    <div class="alert" hidden></div>
+    <canvas></canvas>
+    <div class="stats"><span>サンプル <b class="n">0</b></span><span>受信 <b class="hz">–</b> Hz</span><span>形式 <b class="fmt">–</b></span><span>欠け <b class="miss">0</b></span></div>
+  </section>
+
+  <div class="legend" id="legend"></div>
+
+  <section>
+    <details id="footView">
+      <summary style="margin-top:0;font-size:1rem;font-weight:700;color:var(--ink)">足型ビュー（荷重・せん断・COP）</summary>
+      <canvas id="footCanvas"></canvas>
+      <div class="footBar">
+        <button id="rezero" class="subBtn">ゼロ点を取り直す</button>
+        <div><label for="fzScale" style="margin-top:0">色が一番濃くなる Fz（nH）</label><input id="fzScale" type="number" inputmode="numeric" min="10" step="100" value="3500"></div>
+      </div>
+      <label for="loadSign">荷重による L の変化の向き（Fx・Fy・Fz・グラフのすべてに効きます）</label>
+      <select id="loadSign">
+        <option value="1">荷重で L が増える（ΔL をそのまま使う。foot_view.py と同じ）</option>
+        <option value="-1">荷重で L が減る（ΔL の符号を反転する）</option>
+      </select>
+      <p class="hint">接続直後の1秒間の平均をゼロ点にします。<b>足を乗せずに接続してください。</b>乗せたまま接続したときは、両足を浮かせてから「ゼロ点を取り直す」を押します。色は各センサーの Fz（4コイルの ΔL の合計）をなだらかに広げたもので、センサーの間の色は推定値です。黒い矢印はせん断（Fx は体の内側、Fy は前が正）、オレンジは COP と直近約1秒の軌跡です。値はキャリブレーション前の nH です。</p>
+    </details>
+  </section>
+
+  <section>
+    <div id="timer">00:00</div>
+    <div class="controls">
+      <button id="recBtn" disabled>記録開始</button>
+      <button id="shareBtn" disabled>CSV を共有</button>
+      <button id="copyL" class="subBtn" disabled hidden>左足をコピー</button>
+      <button id="copyR" class="subBtn" disabled hidden>右足をコピー</button>
+    </div>
+    <div id="msg"></div>
+  </section>
+
+  <section id="force">
+    <h2>力のグラフ</h2>
+    <p id="forceEmpty">記録を停止するか、保存済みの CSV を読み込むと表示されます。</p>
+    <div class="tabs" id="tabs" hidden>
+      <button style="--c:var(--left)" data-side="L" aria-selected="false">左足</button>
+      <button style="--c:var(--right)" data-side="R" aria-selected="false">右足</button>
+    </div>
+    <p id="forceTitle"></p>
+    <div id="charts"></div>
+    <p class="hint">値はセンサーごとの4コイルのインダクタンス変化 ΔL（nH、キャリブレーション前）から foot_view.py と同じ式で計算し、ローパスフィルタをかけたものです。ゼロ点は記録開始直後の1秒の平均です。</p>
+    <div class="forceActions">
+      <label class="filebtn">CSV を読み込む<input type="file" id="fileIn" accept=".csv,text/csv" multiple></label>
+      <button id="pngBtn" disabled>画像を共有</button>
+    </div>
+  </section>
+  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.0.0（4センサー版）</p>
+</main>
+
+<div id="imgView" hidden>
+  <div class="box">
+    <p>画像を<b>長押し</b>して、「“写真”に保存」または「共有」を選んでください。</p>
+    <div class="imgs"></div>
+    <button class="close">閉じる</button>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script src="geometry.js"></script>
+<script>
+(() => {
+  const C = window.InsoleCore, G = window.INSOLE_GEOMETRY;
+  const DEFAULT_SVC = "5d65dfcc-996b-4376-868e-82196f0962e1";
+  const DEFAULT_NOTIFY = "a8a5068c-a6f7-d44d-2c89-e77c8bd8aaba";
+  const SENSOR_COLORS = ["#1f77b4","#ff7f0e","#2ca02c","#d62728"];
+  const PLOT_POINTS = 400;
+  const ZERO_N = C.FS;           // ゼロ点 = 最初の1秒（40 サンプル）
+  const RECONNECT_MS = 1500;
+
+  const $ = id => document.getElementById(id);
+  const msg = (t, err=false) => { $("msg").textContent = t; $("msg").className = err ? "err" : ""; };
+
+  if (!navigator.bluetooth) $("unsupported").style.display = "block";
+
+  // 5センサー版アプリと同じサイトに置いても混ざらないよう、保存名に insole4_ を付ける
+  const store = {
+    get(k){ try { return localStorage.getItem("insole4_"+k); } catch { return null; } },
+    set(k,v){ try { localStorage.setItem("insole4_"+k, v); } catch {} }
+  };
+  ["size","subject","exp","trial","svc","notify","fzScale","loadSign"].forEach(f => {
+    const v = store.get(f);
+    if (v) $(f).value = v;
+    $(f).addEventListener("change", () => store.set(f, $(f).value.trim()));
+  });
+  ["anySide","showAll"].forEach(f => {
+    $(f).checked = store.get(f) === "1";
+    $(f).addEventListener("change", () => store.set(f, $(f).checked ? "1" : "0"));
+  });
+  if (!$("svc").value) $("svc").value = DEFAULT_SVC;
+  if (!$("notify").value) $("notify").value = DEFAULT_NOTIFY;
+
+  $("legend").innerHTML = SENSOR_COLORS.map((c,i)=>`<span style="--k:${c}">S${i+1}</span>`).join("")
+    + "<span style='--k:transparent'>（S1 = つま先側 … S4 = かかと側。4コイル合計の生データ）</span>";
+
+  // 被験者 ID の入力履歴
+  function subjects(){ try { return JSON.parse(store.get("subjects") || "[]"); } catch { return []; } }
+  function showSubjects(){ $("subjectList").innerHTML = subjects().map(s => `<option value="${s}">`).join(""); }
+  function rememberSubject(s){
+    if (!s) return;
+    store.set("subjects", JSON.stringify([s, ...subjects().filter(x => x !== s)].slice(0, 30)));
+    showSubjects();
+  }
+  showSubjects();
+
+  // ---- 左右の足 ----
+  function makeFoot(side){
+    const el = $(side === "L" ? "footL" : "footR");
+    const f = {
+      side, el, device:null, char:null, name:"",
+      manual:false, reconnecting:false, rt:null,
+      dec: C.createDecoder(),
+      latest:null, flags:0, sideChecked:false,
+      rows:[], count:0, recvTimes:[],
+      plot: Array.from({length:C.SENS}, () => []),
+      zeroAcc:[], zero:null, trail:[],
+      canvas: el.querySelector("canvas"),
+      stateEl: el.querySelector(".state"),
+      alertEl: el.querySelector(".alert"),
+      btn: el.querySelector("button"),
+    };
+    f.onData = (e) => {
+      const dv = e.target.value;
+      // v2 の1便目は次の通知まで持っておくので、受け取ったバイト列はコピーする
+      const b = new Uint8Array(dv.buffer.slice(dv.byteOffset, dv.byteOffset + dv.byteLength));
+      for (const s of C.handlePacket(f.dec, b)) onSample(f, s);
+    };
+    f.onDisconnected = () => onDisconnected(f);
+    f.btn.addEventListener("click", () => (f.device?.gatt?.connected || f.reconnecting) ? disconnect(f) : connect(f));
+    return f;
+  }
+  const feet = { L: makeFoot("L"), R: makeFoot("R") };
+  const sideName = s => s === "L" ? "左足" : "右足";
+  let recording = false, recStart = 0, recStamp = "", recDate = "";
+
+  function onSample(f, s){
+    if (recording) f.rows.push([s.ts, ...s.values]);
+    f.count++;
+    f.latest = s.values; f.flags = s.flags;
+    const now = performance.now();
+    f.recvTimes.push(now);
+    while (f.recvTimes.length && now - f.recvTimes[0] > 2000) f.recvTimes.shift();
+    for (let i=0;i<C.SENS;i++){
+      const p = f.plot[i];
+      p.push(s.values[4*i] + s.values[4*i+1] + s.values[4*i+2] + s.values[4*i+3]);
+      if (p.length > PLOT_POINTS) p.shift();
+    }
+    if (!f.zero){
+      f.zeroAcc.push(s.values);
+      if (f.zeroAcc.length >= ZERO_N) f.zero = meanIgnoringNan(f.zeroAcc), f.zeroAcc = [];
+    }
+    if (!f.sideChecked){
+      f.sideChecked = true;
+      const devRight = !!(s.flags & C.FLAG_SIDE_RIGHT);
+      if (devRight !== (f.side === "R")){
+        msg(`${sideName(f.side)}に接続した本体（${f.name}）は${devRight ? "右足" : "左足"}に設定されています。正しい足に接続し直すか、本体の正面ボタンを約1.2秒押して左右を切り替えてください。`, true);
+      }
+    }
+  }
+  function meanIgnoringNan(list){
+    const out = new Float64Array(C.NCH);
+    for (let k=0;k<C.NCH;k++){
+      let s=0, n=0;
+      for (const v of list) if (Number.isFinite(v[k])) { s += v[k]; n++; }
+      out[k] = n ? s/n : NaN;
+    }
+    return out;
+  }
+  function restartZero(f){ f.zero = null; f.zeroAcc = []; f.trail = []; }
+
+  function setState(f, text, on){
+    f.stateEl.textContent = text;
+    f.stateEl.classList.toggle("on", !!on);
+    f.btn.textContent = (on || f.reconnecting) ? `${sideName(f.side)}を切断` : `${sideName(f.side)}に接続`;
+    updateButtons();
+    updatePreview();
+  }
+
+  async function connect(f){
+    const svc = ($("svc").value.trim() || DEFAULT_SVC).toLowerCase();
+    const notify = ($("notify").value.trim() || DEFAULT_NOTIFY).toLowerCase();
+    try{
+      setState(f, "デバイス選択中…");
+      const opts = $("showAll").checked ? { acceptAllDevices:true, optionalServices:[svc] }
+        : $("anySide").checked ? { filters:[{ services:[svc] }, { namePrefix:"insole" }], optionalServices:[svc] }
+        : { filters:[{ namePrefix:`insole_${f.side}` }], optionalServices:[svc] };
+      const device = await navigator.bluetooth.requestDevice(opts);
+      const other = feet[f.side === "L" ? "R" : "L"];
+      if (other.device && other.device.id === device.id && (other.device.gatt.connected || other.reconnecting)){
+        setState(f, "未接続", false);
+        msg(`その機器は${sideName(other.side)}として接続済みです。もう一方を選んでください。`, true);
+        return;
+      }
+      if (f.device !== device){
+        f.device?.removeEventListener("gattserverdisconnected", f.onDisconnected);
+        device.addEventListener("gattserverdisconnected", f.onDisconnected);
+        if (f.device && f.device.id !== device.id) f.dec = C.createDecoder(); // 別の本体は時計も別
+        f.device = device;
+      }
+      f.name = device.name || `insole_${f.side}`;
+      f.manual = false;
+      f.sideChecked = false;
+      restartZero(f);
+      await openGatt(f, svc, notify);
+      msg("");
+    }catch(err){
+      f.reconnecting = false;
+      setState(f, "未接続", false);
+      if (err.name === "NotFoundError" && /service/i.test(err.message)) msg("選んだ機器にインソールのサービスが見つかりません。別の機器を選ぶか、BLE 設定のサービス UUID を確認してください。", true);
+      else if (err.name === "NotFoundError" && !/cancel/i.test(err.message) && /no devices|見つかりません/i.test(err.message)) msg("機器が見つかりませんでした。本体の電源と、画面の SIDE（左右の設定）を確認してください。", true);
+      else if (err.name !== "NotFoundError") msg("接続できませんでした: " + err.message, true);
+    }
+  }
+
+  async function openGatt(f, svc, notify){
+    svc = svc || ($("svc").value.trim() || DEFAULT_SVC).toLowerCase();
+    notify = notify || ($("notify").value.trim() || DEFAULT_NOTIFY).toLowerCase();
+    setState(f, f.reconnecting ? "再接続中…" : "接続中…");
+    const server = await f.device.gatt.connect();
+    const service = await server.getPrimaryService(svc);
+    const ch = await service.getCharacteristic(notify);
+    f.char?.removeEventListener("characteristicvaluechanged", f.onData);
+    f.char = ch;
+    ch.addEventListener("characteristicvaluechanged", f.onData);
+    C.resetLink(f.dec);
+    await ch.startNotifications();
+    f.reconnecting = false;
+    setState(f, `接続中（${f.name}）`, true);
+  }
+
+  // 意図しない切断のときは、自動でつなぎ直す（記録中ならそのまま記録が続く）
+  function onDisconnected(f){
+    if (f.manual) { f.reconnecting = false; setState(f, "未接続", false); return; }
+    f.reconnecting = true;
+    setState(f, "切断されました。再接続中…", false);
+    if (recording) msg(`${sideName(f.side)}が記録中に切断されました。自動で再接続します（つながれば記録は続きます）。`, true);
+    scheduleReconnect(f);
+  }
+  function scheduleReconnect(f){
+    clearTimeout(f.rt);
+    f.rt = setTimeout(async () => {
+      if (f.manual || !f.device || f.device.gatt.connected) return;
+      try { await openGatt(f); if (recording) msg(`${sideName(f.side)}に再接続しました。記録を続けています。`); }
+      catch { if (!f.manual) { setState(f, "再接続中…（本体の電源を確認してください）", false); scheduleReconnect(f); } }
+    }, RECONNECT_MS);
+  }
+
+  async function disconnect(f){
+    f.manual = true; f.reconnecting = false; clearTimeout(f.rt);
+    try { await f.char?.stopNotifications(); } catch {}
+    f.device?.gatt?.disconnect();
+    setState(f, "未接続", false);
+  }
+
+  const isConnected = f => !!f.device?.gatt?.connected;
+  const anyConnected = () => Object.values(feet).some(isConnected);
+  const hasData = () => Object.values(feet).some(f => f.rows.length);
+  function updateButtons(){
+    $("recBtn").disabled = !recording && !anyConnected();
+    $("shareBtn").disabled = recording || !hasData() || !navigator.canShare;
+    ["L","R"].forEach(s => $("copy"+s).disabled = recording || !feet[s].rows.length);
+  }
+  // 共有が使えない環境（一部の iPhone 用ブラウザ）ではコピーで渡す
+  if (!navigator.canShare) ["copyL","copyR"].forEach(id => $(id).hidden = false);
+  ["L","R"].forEach(s => $("copy"+s).addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(C.rowsToCsv(feet[s].rows)); msg(`${recName(s)} の内容をコピーしました。メモやメールに貼り付けて、この名前で保存してください。`); }
+    catch (err) { msg("コピーできませんでした: " + err.message, true); }
+  }));
+
+  let wakeLock = null;
+  async function keepAwake(on){
+    try{
+      if (on && "wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
+      else if (!on && wakeLock){ await wakeLock.release(); wakeLock = null; }
+    }catch{}
+  }
+
+  const z2 = n => String(n).padStart(2,"0");
+  function stampOf(d){ return `${d.getFullYear()}${z2(d.getMonth()+1)}${z2(d.getDate())}_${z2(d.getHours())}${z2(d.getMinutes())}${z2(d.getSeconds())}`; }
+
+  $("recBtn").addEventListener("click", () => {
+    recording = !recording;
+    const b = $("recBtn");
+    if (recording){
+      Object.values(feet).forEach(f => f.rows = []);
+      lastNames = {};
+      const now = new Date();
+      recStamp = stampOf(now); recDate = recStamp.slice(0, 8);
+      recStart = performance.now();
+      b.textContent = "記録停止"; b.classList.add("recording");
+      keepAwake(true);
+      msg("記録中…");
+    }else{
+      b.textContent = "記録開始"; b.classList.remove("recording");
+      keepAwake(false);
+      const lines = ["L","R"].filter(s => feet[s].rows.length || isConnected(feet[s]))
+        .map(s => `${sideName(s)} ${feet[s].rows.length} 行`);
+      msg(`記録を停止しました。${lines.join("、")}。`);
+      lastNames = { L:fileName("L", recStamp), R:fileName("R", recStamp) };
+      const loaded = {};
+      ["L","R"].forEach(s => { if (feet[s].rows.length) loaded[s] = { name:lastNames[s], rows:feet[s].rows }; });
+      showForce(loaded, true);
+      queueUpload();
+      if (hasData()){
+        rememberSubject(subjectStr());
+        const n = parseInt($("trial").value, 10);
+        if (isFinite(n)){ $("trial").value = n + 1; store.set("trial", String(n + 1)); updatePreview(); }
+      }
+    }
+    updateButtons();
+  });
+
+  // ---- ファイル名（insole_live_collect_plot.py と同じ形式） ----
+  // data_<left|right>_[サイズ]_[被験者]_[実験名+試行回数]_<BLE名>_<開始日時>.csv
+  // 例: data_left_18.5cm_S0001_walk1_insole_L_7780_20261112_175757.csv
+  const clean = s => s.replace(/[^A-Za-z0-9\-.]/g, "");
+  function sizeValid(){
+    const v = parseFloat($("size").value);
+    return isFinite(v) && v >= 10 && v <= 35 && Math.abs(v*2 - Math.round(v*2)) < 1e-9;
+  }
+  const sizeStr = () => sizeValid() ? String(parseFloat($("size").value)) + "cm" : "";
+  const subjectStr = () => clean($("subject").value.trim());
+  const expBase = () => $("exp").value.replace(/[^A-Za-z0-9\-]/g, "");
+  function expStr(){
+    const n = parseInt($("trial").value, 10);
+    return expBase() ? expBase() + (isFinite(n) && n > 0 ? n : "") : "";
+  }
+  const bleName = side => (feet[side].name || `insole_${side}`).replace(/[^A-Za-z0-9_\-]/g, "");
+  function fileName(side, stamp){
+    return ["data", side === "L" ? "left" : "right", sizeStr(), subjectStr(), expStr(), bleName(side), stamp]
+      .filter(Boolean).join("_") + ".csv";
+  }
+  // 停止した時点のファイル名を固定（試行回数を進めても、保存・送信はその回の名前で行う）
+  let lastNames = {};
+  const recName = side => lastNames[side] || fileName(side, recStamp || stampOf(new Date()));
+  function updatePreview(){
+    const notes = [];
+    if ($("size").value && !sizeValid()) notes.push("サイズは 0.5 刻みの数字で入力してください（例: 18.5）");
+    const missing = [!$("size").value && "サイズ", !subjectStr() && "被験者 ID", !expBase() && "実験名"].filter(Boolean);
+    if (missing.length) notes.push("未入力: " + missing.join("、"));
+    if ($("exp").value !== expBase()) notes.push("実験名の英数字以外の文字は使われません");
+    if (/\d$/.test(expBase())) notes.push("実験名の後ろには試行回数が付きます（例: walk → walk1, walk2 …）");
+    $("namePreview").innerHTML = "次のファイル名: <b>" + fileName("L", "<開始日時>").replace(/</g,"&lt;") + "</b>" + notes.map(t => "<br>" + t).join("");
+  }
+  ["size","subject","exp","trial"].forEach(id => { $(id).addEventListener("input", updatePreview); $(id).addEventListener("change", updatePreview); });
+  // サイズ・被験者・実験名のどれかが変わったら、試行回数を 1 に戻す
+  const infoKey = () => [sizeStr(), subjectStr(), expBase()].join("|");
+  let lastInfoKey = infoKey();
+  function resetTrialIfChanged(){
+    const k = infoKey();
+    if (k === lastInfoKey) return;
+    lastInfoKey = k;
+    if ($("trial").value !== "1"){
+      $("trial").value = "1"; store.set("trial", "1");
+      msg("計測情報が変わったので、試行回数を 1 に戻しました。");
+    }
+    updatePreview();
+  }
+  ["size","subject","exp"].forEach(id => { $(id).addEventListener("input", resetTrialIfChanged); $(id).addEventListener("change", resetTrialIfChanged); });
+  updatePreview();
+
+  function buildFiles(){
+    return ["L","R"].filter(s => feet[s].rows.length).map(s =>
+      new File([C.rowsToCsv(feet[s].rows)], recName(s), { type:"text/csv" }));
+  }
+  $("shareBtn").addEventListener("click", async () => {
+    const files = buildFiles();
+    try{
+      if (navigator.canShare && navigator.canShare({ files })) await navigator.share({ files, title:"インソール計測データ" });
+      else msg("このブラウザではファイル共有ができません。「コピー」を使ってください。", true);
+    }catch(err){ if (err.name !== "AbortError") msg("共有できませんでした: " + err.message, true); }
+  });
+
+  // ---- ライブ表示（波形） ----
+  function fitCanvas(c, h){
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth;
+    if (h) c.style.height = h + "px";
+    const hh = c.clientHeight;
+    if (c.width !== Math.round(w*dpr) || c.height !== Math.round(hh*dpr)){ c.width = Math.round(w*dpr); c.height = Math.round(hh*dpr); }
+    const ctx = c.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return { ctx, w, h: hh };
+  }
+  function drawLive(f){
+    const { ctx, w, h } = fitCanvas(f.canvas);
+    ctx.clearRect(0,0,w,h);
+    let min = Infinity, max = -Infinity;
+    f.plot.forEach(p => p.forEach(v => { if (v<min) min=v; if (v>max) max=v; }));
+    if (!isFinite(min)) return;
+    if (max - min < 10){ max += 5; min -= 5; }
+    const pad = 6;
+    f.plot.forEach((p, i) => {
+      if (p.length < 2) return;
+      ctx.beginPath(); ctx.strokeStyle = SENSOR_COLORS[i]; ctx.lineWidth = 1.5;
+      let pen = false;
+      p.forEach((v, k) => {
+        if (!Number.isFinite(v)) { pen = false; return; }
+        const x = (k / (PLOT_POINTS-1)) * w;
+        const y = pad + (1 - (v-min)/(max-min)) * (h - 2*pad);
+        pen ? ctx.lineTo(x,y) : ctx.moveTo(x,y); pen = true;
+      });
+      ctx.stroke();
+    });
+  }
+
+  // ---- 足型ビュー（foot_view.py の移植） ----
+  const FZ_RAMP = ["#f3f7fd","#cde2fb","#9ec5f4","#6da7ec","#3987e5","#256abf","#184f95","#0d366b"];
+  const COP_COLOR = "#eb6834";
+  const MAP_STEP = 2;        // 分布マップの格子間隔 [mm]
+  const SPREAD = 18;         // 各センサーの Fz を広げる範囲（ガウス分布の σ）[mm]
+  const SHEAR_MM = 0.03;     // せん断 1 nH あたりの矢印の長さ [mm]
+  const hex = h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16));
+  const LUT = (() => {
+    const out = new Uint8ClampedArray(256*3), cs = FZ_RAMP.map(hex);
+    for (let i=0;i<256;i++){
+      const t = i/255*(cs.length-1), k = Math.min(cs.length-2, Math.floor(t)), u = t-k;
+      for (let j=0;j<3;j++) out[i*3+j] = cs[k][j]*(1-u) + cs[k+1][j]*u;
+    }
+    return out;
+  })();
+  const FOOT = (() => {
+    const ol = G.outline_left;
+    const pad = 30;
+    const xmax = Math.max(...ol.map(p => Math.abs(p[0]))) + pad;
+    const ylo = Math.min(...ol.map(p => p[1])) - pad/2, yhi = Math.max(...ol.map(p => p[1])) + pad/2;
+    const side = sign => {
+      const outline = ol.map(([x,y]) => [sign*x, y]);
+      const sensors = G.sensors.map(s => ({ name:s.name, x:sign*s.x, y:s.y, r:s.r }));
+      const xs0 = Math.min(...outline.map(p=>p[0])), xs1 = Math.max(...outline.map(p=>p[0]));
+      const ys0 = Math.min(...outline.map(p=>p[1])), ys1 = Math.max(...outline.map(p=>p[1]));
+      const nx = Math.ceil((xs1-xs0)/MAP_STEP)+1, ny = Math.ceil((ys1-ys0)/MAP_STEP)+1;
+      const W = new Float32Array(nx*ny*sensors.length);
+      for (let j=0;j<ny;j++) for (let i=0;i<nx;i++){
+        const x = xs0 + i*MAP_STEP, y = ys1 - j*MAP_STEP;   // 画像の上 = つま先
+        sensors.forEach((s,k) => { const d2 = (x-s.x)**2 + (y-s.y)**2; W[(j*nx+i)*sensors.length+k] = Math.exp(-d2/(2*SPREAD*SPREAD)); });
+      }
+      const img = document.createElement("canvas"); img.width = nx; img.height = ny;
+      return { sign, outline, sensors, nx, ny, W, x0:xs0, y1:ys1, img, data: img.getContext("2d").createImageData(nx, ny) };
+    };
+    return { xmax, ylo, yhi, L: side(1), R: side(-1) };
+  })();
+
+  function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+  function drawFootView(){
+    const c = $("footCanvas"), w = c.clientWidth;
+    const top = 40, bottom = 46;
+    const sc = (w/2) / (2*FOOT.xmax);
+    const { ctx, h } = fitCanvas(c, Math.round(top + (FOOT.yhi - FOOT.ylo)*sc + bottom));
+    ctx.clearRect(0,0,w,h);
+    const ink = cssVar("--ink"), sub = cssVar("--sub"), panel = cssVar("--panel");
+    const fzScale = Math.max(10, parseFloat($("fzScale").value) || 3500);
+    const loadSign = parseFloat($("loadSign").value) || 1;
+    const font = getComputedStyle(document.body).fontFamily;
+
+    ["L","R"].forEach((side, pi) => {
+      const g = FOOT[side], f = feet[side];
+      const cx = w/4 + pi*w/2;
+      const X = x => cx + x*sc, Y = y => top + (FOOT.yhi - y)*sc;
+      const outlinePath = () => { ctx.beginPath(); g.outline.forEach(([x,y],i) => i ? ctx.lineTo(X(x),Y(y)) : ctx.moveTo(X(x),Y(y))); ctx.closePath(); };
+
+      // 力の計算
+      let status, fx = null, fy = null, fzPos = null, total = 0;
+      const conn = isConnected(f);
+      if (!f.latest) status = `${sideName(side)}  ${f.reconnecting ? "再接続中…" : conn ? "受信待ち…" : "未接続"}`;
+      else if (!f.zero) status = `${sideName(side)}  ゼロ点を取得中 ${Math.round(f.zeroAcc.length/ZERO_N*100)}%`;
+      else {
+        const delta = new Float64Array(C.NCH);
+        for (let k=0;k<C.NCH;k++){ const d = loadSign*(f.latest[k] - f.zero[k]); delta[k] = Number.isFinite(d) ? d : 0; }
+        const r = C.computeForces(delta, side);
+        fx = r.fx; fy = r.fy; fzPos = Array.from(r.fz, v => Math.max(0, v));
+        total = fzPos.reduce((a,b)=>a+b, 0);
+        status = `${sideName(side)}  ΣFz = ${Math.round(total).toLocaleString()} nH${conn ? "" : "（切断中）"}`;
+      }
+
+      // Fz の分布（足型の内側だけ塗る）
+      const px = g.data.data, nS = g.sensors.length;
+      for (let p=0, n=g.nx*g.ny; p<n; p++){
+        let v = 0;
+        if (fzPos) for (let k=0;k<nS;k++) v += g.W[p*nS+k]*fzPos[k];
+        const li = Math.max(0, Math.min(255, Math.round(v/fzScale*255)))*3;
+        px[p*4] = LUT[li]; px[p*4+1] = LUT[li+1]; px[p*4+2] = LUT[li+2]; px[p*4+3] = 255;
+      }
+      g.img.getContext("2d").putImageData(g.data, 0, 0);
+      ctx.save(); outlinePath(); ctx.clip();
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(g.img, X(g.x0 - MAP_STEP/2), Y(g.y1 + MAP_STEP/2), g.nx*MAP_STEP*sc, g.ny*MAP_STEP*sc);
+      ctx.restore();
+      outlinePath(); ctx.strokeStyle = sub; ctx.lineWidth = 1.5; ctx.stroke();
+
+      // センサーの位置と名前（名前は外側 = 小指側に置く）
+      ctx.font = `600 ${11}px ${font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      g.sensors.forEach(s => {
+        ctx.beginPath(); ctx.arc(X(s.x), Y(s.y), s.r*sc, 0, 2*Math.PI);
+        ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.stroke();
+        ctx.lineWidth = 1; ctx.strokeStyle = "#52514e"; ctx.stroke();
+        ctx.fillStyle = sub; ctx.fillText(s.name, X(s.x - g.sign*(s.r + 9)), Y(s.y));
+      });
+
+      // せん断の矢印（内側 = 左足は +x、右足は -x）
+      if (fx){
+        g.sensors.forEach((s, k) => {
+          const dx = g.sign*fx[k]*SHEAR_MM*sc, dy = -fy[k]*SHEAR_MM*sc;
+          const len = Math.hypot(dx, dy);
+          if (len < 1.5) return;
+          const x0 = X(s.x), y0 = Y(s.y), x1 = x0+dx, y1 = y0+dy, ux = dx/len, uy = dy/len, hl = Math.min(8, len*0.5);
+          const arrow = () => {
+            ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1 - ux*hl*0.6, y1 - uy*hl*0.6); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1 - ux*hl - uy*hl*0.5, y1 - uy*hl + ux*hl*0.5);
+            ctx.lineTo(x1 - ux*hl + uy*hl*0.5, y1 - uy*hl - ux*hl*0.5); ctx.closePath();
+          };
+          ctx.lineCap = "round";
+          ctx.strokeStyle = "#fff"; ctx.lineWidth = 5; arrow(); ctx.stroke();
+          ctx.strokeStyle = "#0b0b0b"; ctx.fillStyle = "#0b0b0b"; ctx.lineWidth = 2.2; arrow(); ctx.fill();
+        });
+      }
+
+      // COP と直近約1秒の軌跡
+      if (fzPos && total > 0.05*fzScale){
+        let cxm = 0, cym = 0;
+        g.sensors.forEach((s,k) => { cxm += fzPos[k]*s.x; cym += fzPos[k]*s.y; });
+        f.trail.push([cxm/total, cym/total]);
+        if (f.trail.length > C.FS) f.trail.shift();
+      } else if (fzPos) f.trail = [];
+      if (f.trail.length){
+        ctx.beginPath(); f.trail.forEach(([x,y],i) => i ? ctx.lineTo(X(x),Y(y)) : ctx.moveTo(X(x),Y(y)));
+        ctx.strokeStyle = COP_COLOR; ctx.globalAlpha = .5; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
+        const [x,y] = f.trail[f.trail.length-1];
+        ctx.beginPath(); ctx.arc(X(x), Y(y), 6, 0, 2*Math.PI); ctx.fillStyle = COP_COLOR; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = panel; ctx.stroke();
+      }
+
+      ctx.font = `600 ${12}px ${font}`; ctx.fillStyle = side === "L" ? cssVar("--left") : cssVar("--right");
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      ctx.fillText(status, cx, 6, w/2 - 8);
+    });
+
+    // 凡例: Fz の色、矢印の長さ、COP
+    const by = h - bottom + 10, bx0 = 16, bx1 = w*0.62;
+    const grad = ctx.createLinearGradient(bx0, 0, bx1, 0);
+    FZ_RAMP.forEach((c,i) => grad.addColorStop(i/(FZ_RAMP.length-1), c));
+    ctx.fillStyle = grad; ctx.fillRect(bx0, by, bx1-bx0, 10);
+    ctx.strokeStyle = sub; ctx.lineWidth = 1; ctx.strokeRect(bx0, by, bx1-bx0, 10);
+    ctx.font = `${10.5}px ${font}`; ctx.fillStyle = sub; ctx.textBaseline = "top";
+    ctx.textAlign = "left"; ctx.fillText("Fz 0", bx0, by + 14);
+    ctx.textAlign = "right"; ctx.fillText(`${fzScale.toLocaleString()} nH`, bx1, by + 14);
+    const ref = 1000*SHEAR_MM*sc, ax = w - 16;
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax - ref, by + 5); ctx.lineTo(ax, by + 5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ax, by+5); ctx.lineTo(ax-6, by+1); ctx.lineTo(ax-6, by+9); ctx.closePath(); ctx.fillStyle = ink; ctx.fill();
+    ctx.fillStyle = sub; ctx.textAlign = "right"; ctx.fillText("せん断 1000 nH", ax, by + 14);
+  }
+  $("rezero").addEventListener("click", () => {
+    Object.values(feet).forEach(restartZero);
+    msg("ゼロ点を取り直しています。1秒間、両足を浮かせておいてください。");
+  });
+  $("loadSign").addEventListener("change", () => { Object.values(feet).forEach(f => f.trail = []); recomputeForce(); });
+
+  function tick(){
+    Object.values(feet).forEach(f => {
+      drawLive(f);
+      f.el.querySelector(".n").textContent = recording ? f.rows.length : f.count;
+      f.el.querySelector(".hz").textContent = f.recvTimes.length > 1 ? (f.recvTimes.length / 2).toFixed(0) : "–";
+      f.el.querySelector(".fmt").textContent = f.dec.format || (f.dec.legacy ? "旧形式" : "–");
+      f.el.querySelector(".miss").textContent = f.dec.missing + (f.dec.recovered ? `（補完 ${f.dec.recovered}）` : "");
+      let alert = "", warn = false;
+      if (f.dec.legacy && !f.dec.format) alert = "旧ファーム（5センサー版など）のデータです。このアプリでは受信できません。src/main.cpp を書き込んでください。";
+      else if (f.latest && (f.flags & C.FLAG_LDC_ERR) && isConnected(f)) alert = "センサーエラー（I2C の通信に失敗しています。ケーブルを確認してください）";
+      else if (f.latest && f.sideChecked && !!(f.flags & C.FLAG_SIDE_RIGHT) !== (f.side === "R")) { alert = `本体は${f.flags & C.FLAG_SIDE_RIGHT ? "右足" : "左足"}に設定されています`; warn = true; }
+      if (f.alertEl.textContent !== alert) f.alertEl.textContent = alert;
+      f.alertEl.hidden = !alert; f.alertEl.classList.toggle("warn", warn);
+    });
+    if ($("footView").open) drawFootView();
+    if (recording){
+      const s = Math.floor((performance.now() - recStart)/1000);
+      $("timer").textContent = z2(Math.floor(s/60)) + ":" + z2(s%60);
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  document.addEventListener("visibilitychange", () => { if (recording && document.visibilityState === "visible") keepAwake(true); });
+
+  // ---- 力のグラフ ----
+  const PANELS = [
+    { d:"x", kind:"each", title:"Fx: shear, medial +" },
+    { d:"x", kind:"sum",  title:"Fx total (S1-S4)" },
+    { d:"y", kind:"each", title:"Fy: shear, anterior +" },
+    { d:"y", kind:"sum",  title:"Fy total (S1-S4)" },
+    { d:"z", kind:"each", title:"Fz: sum of 4 coils" },
+    { d:"z", kind:"sum",  title:"Fz total (S1-S4)" },
+  ];
+  let forceData = {}, forceSide = null;
+
+  const sideOfName = n => /data_left|(^|_)L_|left/i.test(n) ? "L" : /data_right|(^|_)R_|right/i.test(n) ? "R" : null;
+  const titleOf = n => n.replace(/\.csv$/i,"");
+
+  function panelSeries(F, p){
+    return p.kind === "each"
+      ? F[p.d].map((y, i) => ({ y, color:SENSOR_COLORS[i], label:`F${p.d}${i+1}` }))
+      : [{ y:F[p.d+"Sum"], color:"#e00000", label:`F${p.d} total`, width:2 }];
+  }
+
+  function niceTicks(min, max, count){
+    const span = max - min, raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1,2,2.5,5,10].map(m => m*mag).find(s => span/s <= count) || 10*mag;
+    const out = [];
+    for (let v = Math.ceil(min/step)*step; v <= max + step*1e-9; v += step) out.push(+v.toFixed(10));
+    return out;
+  }
+  const fmt = v => Math.abs(v) >= 1000 ? v.toFixed(0) : +v.toPrecision(4) + "";
+
+  // ctx 上の (X,Y,W,H) にグラフを描く。s は文字・線の倍率
+  function drawChart(ctx, X, Y, W, H, title, xs, series, th, s){
+    ctx.save();
+    ctx.font = `600 ${13*s}px ${th.font}`;
+    ctx.fillStyle = th.ink; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText(title, X + W/2, Y);
+    const L = X + 52*s, T = Y + 22*s, R = X + W - 8*s, B = Y + H - 34*s;
+    let min = Infinity, max = -Infinity;
+    series.forEach(se => { for (const v of se.y) { if (v<min) min=v; if (v>max) max=v; } });
+    if (!isFinite(min)) { min = 0; max = 1; }
+    if (max - min < 1e-9){ min -= 1; max += 1; }
+    const padY = (max-min)*0.05; min -= padY; max += padY;
+    const xmax = xs[xs.length-1] || 1;
+    const px = x => L + (x/xmax)*(R-L);
+    const py = v => B - (v-min)/(max-min)*(B-T);
+    ctx.strokeStyle = th.grid; ctx.lineWidth = 1*s;
+    ctx.font = `${10.5*s}px ${th.font}`; ctx.fillStyle = th.sub;
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    niceTicks(min, max, 5).forEach(v => {
+      const y = py(v); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(R,y); ctx.stroke();
+      ctx.fillText(fmt(v), L - 4*s, y);
+    });
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    niceTicks(0, xmax, 6).forEach(v => {
+      const x = px(v); ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,B); ctx.stroke();
+      ctx.fillText(fmt(v), x, B + 4*s);
+    });
+    ctx.strokeStyle = th.sub; ctx.strokeRect(L, T, R-L, B-T);
+    ctx.fillText("Time (s)", (L+R)/2, B + 18*s);
+    ctx.save(); ctx.translate(X + 10*s, (T+B)/2); ctx.rotate(-Math.PI/2);
+    ctx.textBaseline = "middle"; ctx.fillText("ΔL (nH)", 0, 0); ctx.restore();
+    ctx.beginPath(); ctx.rect(L, T, R-L, B-T); ctx.clip();
+    const n = xs.length, stride = Math.max(1, Math.floor(n / ((R-L)*2)));
+    series.forEach(se => {
+      ctx.beginPath(); ctx.strokeStyle = se.color; ctx.lineWidth = (se.width || 1.3)*s;
+      for (let k=0;k<n;k+=stride){ const x=px(xs[k]), y=py(se.y[k]); k ? ctx.lineTo(x,y) : ctx.moveTo(x,y); }
+      ctx.stroke();
+    });
+    ctx.restore();
+    // 凡例
+    ctx.save();
+    ctx.font = `${10*s}px ${th.font}`; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    const lh = 14*s;
+    let lw = 0; series.forEach(se => lw = Math.max(lw, ctx.measureText(se.label).width));
+    const bw = lw + 34*s, bh = series.length*lh + 6*s, bx = R - bw - 6*s, by = T + 6*s;
+    ctx.fillStyle = th.legendBg; ctx.strokeStyle = th.grid; ctx.lineWidth = 1*s;
+    ctx.fillRect(bx, by, bw, bh); ctx.strokeRect(bx, by, bw, bh);
+    series.forEach((se, i) => {
+      const y = by + 3*s + lh*(i+0.5);
+      ctx.strokeStyle = se.color; ctx.lineWidth = (se.width || 1.3)*s;
+      ctx.beginPath(); ctx.moveTo(bx + 5*s, y); ctx.lineTo(bx + 23*s, y); ctx.stroke();
+      ctx.fillStyle = th.ink; ctx.fillText(se.label, bx + 28*s, y);
+    });
+    ctx.restore();
+  }
+
+  function screenTheme(){
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    return { ink:cssVar("--ink"), sub:cssVar("--sub"),
+      grid: dark ? "#33404e" : "#dfe4ea", legendBg: dark ? "rgba(29,38,49,.85)" : "rgba(255,255,255,.85)",
+      font:getComputedStyle(document.body).fontFamily };
+  }
+  const paperTheme = { ink:"#000", sub:"#333", grid:"#d9d9d9", legendBg:"rgba(255,255,255,.85)",
+    font:'"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif' };
+
+  const durationOf = fd => fd.F.time[fd.F.time.length-1] || 0;
+  function renderForce(){
+    const box = $("charts"); box.innerHTML = "";
+    const fd = forceData[forceSide];
+    if (!fd) return;
+    $("forceTitle").textContent = titleOf(fd.name) + `（${fd.rows.length} 行, ${durationOf(fd).toFixed(1)} 秒）`;
+    const th = screenTheme();
+    let lastD = null;
+    PANELS.forEach(p => {
+      if (p.d !== lastD){ const h = document.createElement("h3"); h.textContent = `${p.d.toUpperCase()} 方向`; box.appendChild(h); lastD = p.d; }
+      const c = document.createElement("canvas"); c.className = "chart"; box.appendChild(c);
+      const { ctx, w, h } = fitCanvas(c);
+      drawChart(ctx, 0, 0, w, h, p.title, fd.F.time, panelSeries(fd.F, p), th, 1);
+    });
+  }
+
+  function selectSide(side){
+    forceSide = side;
+    $("tabs").querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.side === side)));
+    renderForce();
+  }
+
+  const forceOpts = () => ({ zeroSeconds:1, loadSign: parseFloat($("loadSign").value) || 1 });
+  function showForce(entries, replace){
+    if (replace) forceData = {};
+    for (const [side, e] of Object.entries(entries)){
+      if (e.rows.length < 2) continue;
+      forceData[side] = { name:e.name, rows:e.rows, F: C.forceSeries(e.rows, side, forceOpts()) };
+    }
+    const sides = Object.keys(forceData);
+    $("forceEmpty").hidden = sides.length > 0;
+    $("tabs").hidden = sides.length === 0;
+    $("tabs").querySelectorAll("button").forEach(b => b.disabled = !forceData[b.dataset.side]);
+    $("pngBtn").disabled = sides.length === 0;
+    if (sides.length) selectSide(forceData[forceSide] ? forceSide : (forceData.L ? "L" : "R"));
+    else { $("charts").innerHTML = ""; $("forceTitle").textContent = ""; }
+  }
+  function recomputeForce(){
+    for (const [side, fd] of Object.entries(forceData)) fd.F = C.forceSeries(fd.rows, side, forceOpts());
+    renderForce();
+  }
+
+  $("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b && !b.disabled) selectSide(b.dataset.side); });
+
+  $("fileIn").addEventListener("change", async e => {
+    const entries = {}, errors = [];
+    for (const file of e.target.files){
+      try{
+        const rows = C.parseCsv(await file.text());
+        if (rows.length < 2) throw new Error("データ行がありません（17列の CSV ではないようです）");
+        const side = sideOfName(file.name) || (entries.L || forceData.L ? "R" : "L");
+        entries[side] = { name:file.name, rows };
+      }catch(err){ errors.push(`${file.name}: ${err.message}`); }
+    }
+    showForce(entries, false);
+    if (errors.length) msg("読み込めなかったファイル:\n" + errors.join("\n"), true);
+    e.target.value = "";
+  });
+
+  function renderPng(side){
+    const fd = forceData[side]; if (!fd) return null;
+    const s = 1.5, W = 1400*s, H = 1000*s;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0,0,W,H);
+    const title = titleOf(fd.name);
+    ctx.font = `700 ${18*s}px ${paperTheme.font}`; ctx.fillStyle = "#000"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText(title, W/2, 10*s);
+    ctx.font = `${11*s}px ${paperTheme.font}`; ctx.fillStyle = "#333";
+    const sign = parseFloat($("loadSign").value) < 0 ? "-ΔL" : "+ΔL";
+    ctx.fillText(`ΔL [nH] before calibration, low-pass filtered, zero = mean of first 1 s, load sign ${sign}, ${fd.rows.length} rows, ${durationOf(fd).toFixed(1)} s`, W/2, 32*s);
+    const top = 52*s, cw = (W - 30*s)/2, ch = (H - top - 10*s)/3;
+    PANELS.forEach((p, i) => {
+      drawChart(ctx, 10*s + (i%2)*(cw+10*s), top + Math.floor(i/2)*ch, cw, ch - 8*s, p.title, fd.F.time, panelSeries(fd.F, p), paperTheme, s);
+    });
+    return { canvas:c, title };
+  }
+
+  // 左右のグラフ画像をまとめて共有。画像作成は同期処理なので、タップ直後のうちに共有メニューを開ける（iPhone 対策）
+  $("pngBtn").addEventListener("click", () => {
+    const imgs = ["L","R"].map(s => renderPng(s)).filter(Boolean).map(p => {
+      const url = p.canvas.toDataURL("image/png");
+      const bin = atob(url.split(",")[1]), bytes = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+      return { url, file: new File([bytes], p.title + ".png", { type:"image/png" }) };
+    });
+    if (!imgs.length) return;
+    const files = imgs.map(i => i.file);
+    if (navigator.canShare && navigator.canShare({ files })){
+      navigator.share({ files }).catch(err => { if (err.name !== "AbortError") showImages(imgs); });
+      return;
+    }
+    showImages(imgs);
+  });
+  function showImages(imgs){
+    const box = $("imgView").querySelector(".imgs");
+    box.innerHTML = "";
+    imgs.forEach(i => { const im = document.createElement("img"); im.src = i.url; im.alt = i.file.name; box.appendChild(im); });
+    $("imgView").hidden = false;
+  }
+  $("imgView").addEventListener("click", e => { if (e.target.closest(".close") || e.target === $("imgView")) $("imgView").hidden = true; });
+
+  // ---- Google ドライブへのアップロード（Apps Script 経由。5センサー版アプリと同じ受け口を使える） ----
+  ["gdUrl","gdToken"].forEach(f => {
+    const v = store.get(f); if (v) $(f).value = v;
+    $(f).addEventListener("change", () => { store.set(f, $(f).value.trim()); gdShow(); });
+  });
+
+  // 送れなかったデータは端末内（IndexedDB）に残して、あとで再送する
+  const idb = () => new Promise((res, rej) => {
+    const r = indexedDB.open("insole4_upload", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("queue", { keyPath:"id", autoIncrement:true });
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  async function qAll(){ const db = await idb(); return new Promise((res, rej) => { const t = db.transaction("queue").objectStore("queue").getAll(); t.onsuccess = () => res(t.result); t.onerror = () => rej(t.error); }); }
+  async function qPut(v){ const db = await idb(); return new Promise((res, rej) => { const t = db.transaction("queue","readwrite").objectStore("queue").add(v); t.onsuccess = () => res(t.result); t.onerror = () => rej(t.error); }); }
+  async function qDel(id){ const db = await idb(); return new Promise((res, rej) => { const t = db.transaction("queue","readwrite").objectStore("queue").delete(id); t.onsuccess = () => res(); t.onerror = () => rej(t.error); }); }
+
+  let gdBusy = false, gdLast = "";
+  async function gdShow(){
+    let n = 0; try { n = (await qAll()).length; } catch {}
+    $("gdRetry").hidden = n === 0;
+    $("gdRetry").textContent = `未送信を再送（${n} 件）`;
+    const ready = $("gdUrl").value.trim() && $("gdToken").value.trim();
+    $("gdStatus").className = "hint";
+    $("gdStatus").textContent = gdBusy ? "アップロード中…"
+      : !ready ? (n ? `未設定です。未送信のデータが ${n} 件あります。下の「送信先の設定」を開いて入力してください。` : "未設定です。下の「送信先の設定」を開いて入力してください。")
+      : gdLast || "記録を停止すると自動でアップロードします。";
+  }
+
+  async function post(body){
+    const url = $("gdUrl").value.trim();
+    if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url))
+      throw new Error("URL の形が違います。「https://script.google.com/macros/s/…/exec」で終わる、デプロイ画面の「ウェブアプリ」の URL を貼ってください（/dev で終わるものや、エディタ画面の URL は使えません）");
+    let res;
+    try { res = await fetch(url, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:JSON.stringify(body) }); }
+    catch { throw new Error("送信先に届きません。電波を確認し、デプロイの「アクセスできるユーザー」が「全員」になっているか確認してください"); }
+    const text = await res.text();
+    let j;
+    try { j = JSON.parse(text); }
+    catch {
+      if (/スクリプト関数が見つかりません|Script function not found/i.test(text))
+        throw new Error("受け口に doPost がありません。Apps Script に apps_script.gs を貼り付けて保存し、「デプロイを管理」から新バージョンでデプロイし直してください");
+      throw new Error(/<html|<!DOCTYPE/i.test(text)
+        ? "Google のログイン画面かエラー画面が返ってきました。デプロイの「アクセスできるユーザー」を「全員」にして、新バージョンでデプロイし直してください"
+        : "送信先から予期しない応答がありました（" + text.slice(0, 60) + "）");
+    }
+    if (!j.ok) throw new Error(
+      j.error === "token" ? "合言葉が一致しません。アプリと Apps Script の TOKEN が同じか確認してください（大文字・小文字、空白も区別されます）"
+      : /getFolderById|見つかりません|not found|No item/i.test(j.error || "") ? "保存先フォルダが見つかりません。Apps Script の FOLDER_ID を確認してください（" + j.error + "）"
+      : (j.error || "送信先でエラーが起きました"));
+    return j;
+  }
+
+  async function queueUpload(){
+    const files = [];
+    ["L","R"].forEach(s => {
+      if (!feet[s].rows.length) return;
+      files.push({ name:recName(s), sub:"csv", mimeType:"text/csv", text: C.rowsToCsv(feet[s].rows) });
+      const png = renderPng(s);
+      if (png) files.push({ name:png.title + ".png", sub:"png", mimeType:"image/png", base64: png.canvas.toDataURL("image/png").split(",")[1] });
+    });
+    if (!files.length) return;
+    try { await qPut({ folders: [recDate, subjectStr() || "IDなし"], files }); }
+    catch (err) { gdLast = "端末に一時保存できませんでした: " + err.message; gdShow(); return; }
+    flush();
+  }
+
+  async function flush(){
+    if (gdBusy || !$("gdUrl").value.trim() || !$("gdToken").value.trim()) { gdShow(); return; }
+    gdBusy = true; gdShow();
+    try{
+      for (const item of await qAll()){
+        await post({ token:$("gdToken").value.trim(), folders:item.folders, files:item.files });
+        await qDel(item.id);
+        gdLast = `アップロードしました（${item.folders.join(" / ")} / ${item.files.filter(f => f.mimeType === "text/csv").map(f => f.name).join("、")}）`;
+      }
+    }catch(err){
+      gdLast = `アップロードできませんでした: ${err.message}。データは端末に残っているので、電波のある場所で「未送信を再送」を押してください。`;
+    }
+    gdBusy = false; await gdShow();
+    if (gdLast.startsWith("アップロードできません")) $("gdStatus").className = "hint err";
+  }
+
+  $("gdRetry").addEventListener("click", flush);
+  $("gdTest").addEventListener("click", async () => {
+    gdLast = "確認中…"; gdShow();
+    try { await post({ token:$("gdToken").value.trim(), test:true }); gdLast = "接続できました。"; }
+    catch (err) { gdLast = "接続できませんでした: " + err.message; }
+    gdShow();
+  });
+  window.addEventListener("online", flush);
+  gdShow(); flush();
+
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderForce, 200); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", renderForce);
+  updateButtons();
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
