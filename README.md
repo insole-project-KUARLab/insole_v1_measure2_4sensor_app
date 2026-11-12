@@ -125,7 +125,7 @@ data_<left|right>_<サイズ>_<被験者ID>_<実験名+試行回数>_<インソ�
 ### Google ドライブ
 
 ```
-（保存先フォルダ）
+insole_data
 └ 20261112            ← 記録した日付
    └ S0001            ← 被験者 ID
       ├ csv
@@ -169,7 +169,7 @@ timestamp_ms, s1c1, s1c2, s1c3, s1c4, s2c1, …, s4c4
 
 ## アプリを修正する人へ
 
-- このリポジトリは GitHub Pages で公開しているため Public です。計測データ、被験者の情報、ドライブの URL や合言葉は入れないでください。
+- このリポジトリは GitHub Pages で公開しているため Public です。計測データ、被験者の情報、合言葉、ドライブのフォルダの URL は入れないでください（Apps Script の URL は合言葉がないと使えないので、`index.html` に書いてあっても問題ありません）。
 - main に push すると1〜2分で公開ページに反映されます。そのとき `sw.js` の `VERSION` の数字を上げてください（上げないと、スマホに古い版が残ることがあります）。
 - 送信先の受け口（Apps Script）の URL は `index.html` の `DEFAULT_GD_URL` に書いてあります。保存先のフォルダは Apps Script 側の `FOLDER_ID` で決まります。
 - 受け口を新しく作るときは、`apps_script.gs` を [script.google.com](https://script.google.com) に貼り付け、`FOLDER_ID` と `TOKEN`（合言葉）を書き換えて、「ウェブアプリ」（実行するユーザー: 自分、アクセスできるユーザー: 全員）としてデプロイします。表示された URL で `DEFAULT_GD_URL` を書き換えてください。Apps Script を書き換えたときは、「デプロイを管理」→ 鉛筆マーク →「新バージョン」でデプロイし直します（URL は変わりません）。
