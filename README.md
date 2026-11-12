@@ -4,6 +4,8 @@
 
 **アプリを開く: https://insole-project-kuarlab.github.io/insole_v1_measure2_4sensor_app/**
 
+被験者に自分のスマホで計測してもらうときの案内文は [subject_message.md](subject_message.md) にあります。
+
 ## 使えるスマホとブラウザ
 
 | スマホ | ブラウザ |
