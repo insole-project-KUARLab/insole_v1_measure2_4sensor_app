@@ -29,7 +29,8 @@
 
 ■ 用意するもの
 ・Android の人：Chrome
-・iPhone の人：App Store で「Bluefy」を検索して入れてください（Safari や Chrome だと Bluetooth が使えません）
+・iPhone の人：「Bluefy」というアプリを入れてください（Safari や Chrome だと Bluetooth が使えません）
+　https://apps.apple.com/jp/app/bluefy-web-ble-browser/id1492822055
 
 ■ アプリ
 https://insole-project-kuarlab.github.io/insole_v1_measure2_4sensor_app/
@@ -46,6 +47,8 @@ https://insole-project-kuarlab.github.io/insole_v1_measure2_4sensor_app/
 　・被験者 ID：【S00XX】
 　・実験名：【walk】
 　・試行回数：1（自動で増えるので触らなくて大丈夫）
+　・今日の体重：その日に測った体重（kg）
+　　※体重はファイル名やデータには入らず、こちら（研究の担当者）だけが見られる表に送られます
 2. インソールの電源を入れる（※まだ足は乗せないでください）
 3. 「左足に接続」→ insole_L_… を選ぶ
 　「右足に接続」→ insole_R_… を選ぶ

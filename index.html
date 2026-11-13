@@ -95,7 +95,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   <h1>インソール計測アプリ<small>4センサー版</small></h1>
   <p class="lead">計測情報を入力し、左右のマイコンを接続してから「記録開始」を押してください。記録を停止すると、データは自動で Google ドライブに保存されます。</p>
 
-  <div class="unsupported" id="unsupported">このブラウザは Web Bluetooth に対応していません。Android は Chrome、iPhone は Bluefy アプリで開いてください。保存済み CSV のグラフ表示はこのままでも使えます。</div>
+  <div class="unsupported" id="unsupported">このブラウザは Web Bluetooth に対応していません。Android は Chrome、iPhone は <a href="https://apps.apple.com/jp/app/bluefy-web-ble-browser/id1492822055" style="color:#fff;text-decoration:underline">Bluefy</a> アプリで開いてください。保存済み CSV のグラフ表示はこのままでも使えます。</div>
 
   <section>
     <h2>計測情報</h2>
@@ -108,6 +108,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
       <div><label for="trial">試行回数</label><input id="trial" type="number" inputmode="numeric" min="1" value="1"></div>
     </div>
     <p class="hint" id="namePreview"></p>
+    <label for="weight">今日の体重（kg）</label>
+    <input id="weight" type="number" inputmode="decimal" step="0.1" min="5" max="200" placeholder="例: 55.2" autocomplete="off">
+    <p class="hint" id="weightHint"></p>
     <details>
       <summary>BLE 設定</summary>
       <label for="svc">サービス UUID</label>
@@ -200,7 +203,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
       <button id="pngBtn" disabled>画像を共有</button>
     </div>
   </section>
-  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.0.0（4センサー版）</p>
+  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.1.0（4センサー版）</p>
 </main>
 
 <div id="imgView" hidden>
@@ -515,6 +518,47 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   }
   ["size","subject","exp"].forEach(id => { $(id).addEventListener("input", resetTrialIfChanged); $(id).addEventListener("change", resetTrialIfChanged); });
   updatePreview();
+
+  // ---- 今日の体重 ----
+  // ファイル名や CSV には入れず、Apps Script を通して管理者のマイドライブの表（insole_体重記録）にだけ送る。
+  // 端末には今日の分だけ残す（被験者 ID ごと。日付が変わったら消す）
+  const WEIGHT_NOTE = "ファイル名やデータには入りません。研究の管理者だけが見られる表に送られます。";
+  const today = () => stampOf(new Date()).slice(0, 8);
+  function weightLog(){
+    let w = null;
+    try { w = JSON.parse(store.get("weights") || "null"); } catch {}
+    return w && w.date === today() && w.entries ? w : { date: today(), entries: {} };
+  }
+  function showWeight(note){
+    const s = subjectStr(), e = s && weightLog().entries[s], el = $("weight"), hint = $("weightHint");
+    el.disabled = !s;
+    el.placeholder = s ? "例: 55.2" : "先に被験者 ID を入力してください";
+    if (document.activeElement !== el) el.value = e ? e.kg : "";
+    hint.className = note ? "hint err" : "hint";
+    hint.textContent = note || (e ? (e.sent ? "送信済みです。" : "未送信です（送信できるようになったら自動で送ります）。") + WEIGHT_NOTE : WEIGHT_NOTE);
+  }
+  $("weight").addEventListener("change", async () => {
+    const s = subjectStr(); if (!s) return;
+    const log = weightLog(), raw = $("weight").value.trim();
+    if (!raw){ delete log.entries[s]; store.set("weights", JSON.stringify(log)); showWeight(); return; }
+    const kg = Math.round(parseFloat(raw) * 10) / 10;
+    if (!(kg >= 5 && kg <= 200)) { showWeight("体重は kg の数字で入力してください（例: 55.2）。"); return; }
+    $("weight").value = kg;
+    if (log.entries[s]?.kg === kg) { showWeight(); return; }
+    log.entries[s] = { kg, sent: false };
+    store.set("weights", JSON.stringify(log));
+    try { await qPut({ folders: [], files: [], weight: { date: log.date, subject: s, kg } }); }
+    catch (err) { showWeight("端末に一時保存できませんでした: " + err.message); return; }
+    showWeight(); flush();
+  });
+  function markWeightSent(w){
+    const log = weightLog(), e = log.entries[w.subject];
+    if (log.date !== w.date || !e || e.kg !== w.kg) return;   // 送信待ちの間に書き換えられた
+    e.sent = true; store.set("weights", JSON.stringify(log)); showWeight();
+  }
+  $("subject").addEventListener("input", () => showWeight());
+  $("subject").addEventListener("change", () => showWeight());
+  showWeight();
 
   function buildFiles(){
     return ["L","R"].filter(s => feet[s].rows.length).map(s =>
@@ -1007,12 +1051,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   async function flush(){
     if (gdBusy || !$("gdUrl").value.trim() || !$("gdToken").value.trim()) { gdShow(); return; }
     gdBusy = true; gdShow();
+    let oldScript = false;
     try{
       for (const item of await qAll()){
-        await post({ token:$("gdToken").value.trim(), folders:item.folders, files:item.files });
+        const j = await post({ token:$("gdToken").value.trim(), folders:item.folders, files:item.files, weight:item.weight });
+        // 体重に対応していない古い受け口は weight を無視して ok を返す。消さずに残し、ほかのデータは送り続ける
+        if (item.weight && !j.weight) { oldScript = true; continue; }
         await qDel(item.id);
-        gdLast = `アップロードしました（${item.folders.join(" / ")} / ${item.files.filter(f => f.mimeType === "text/csv").map(f => f.name).join("、")}）`;
+        if (item.weight) markWeightSent(item.weight);
+        gdLast = item.files.length
+          ? `アップロードしました（${item.folders.join(" / ")} / ${item.files.filter(f => f.mimeType === "text/csv").map(f => f.name).join("、")}）`
+          : `体重を記録しました（${item.weight.date} / ${item.weight.subject}）`;
       }
+      if (oldScript) gdLast = "アップロードできませんでした: 送信先（Apps Script）が体重の保存に対応していない古い版です。管理している人に、apps_script.gs を貼り直して新バージョンでデプロイするよう伝えてください。";
     }catch(err){
       gdLast = `アップロードできませんでした: ${err.message}。データは端末に残っているので、電波のある場所で「未送信を再送」を押してください。`;
     }
