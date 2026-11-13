@@ -44,10 +44,10 @@ input,select{width:100%;font:inherit;font-size:1rem;padding:9px 10px;border:1px 
 details summary{cursor:pointer;color:var(--sub);font-size:.85rem;margin-top:10px}
 .hint{font-size:.8rem;color:var(--sub);margin:8px 0 0;line-height:1.6}
 .hint.err{color:var(--rec)}
-button,.filebtn{font:inherit;font-size:1rem;font-weight:600;border:0;border-radius:10px;padding:12px 14px;cursor:pointer;color:#fff;background:var(--ink);text-align:center;display:block;position:relative}
-@media (prefers-color-scheme:dark){button,.filebtn{color:#141b23}}
+button{font:inherit;font-size:1rem;font-weight:600;border:0;border-radius:10px;padding:12px 14px;cursor:pointer;color:#fff;background:var(--ink);text-align:center;display:block;position:relative}
+@media (prefers-color-scheme:dark){button{color:#141b23}}
 button:disabled{opacity:.4;cursor:default}
-button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-within{outline:3px solid var(--left);outline-offset:2px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--left);outline-offset:2px}
 .foot{border-left:6px solid var(--c)}
 .foot h2{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--c)}
 .foot .state{font-size:.8rem;font-weight:500;color:var(--sub);text-align:right}
@@ -66,34 +66,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
 @keyframes pulse{50%{opacity:.7}}
 @media (prefers-reduced-motion:reduce){#recBtn.recording{animation:none}}
 .subBtn{background:var(--sub)}
+.decide{border:2px solid var(--brand);border-radius:12px;padding:12px}
+.decide p{margin:0 0 10px;font-size:.9rem;font-weight:600;line-height:1.6}
+.decide .grid2{margin:0}
+#sendBtn{background:var(--ok)}
 [hidden]{display:none !important}
 #timer{text-align:center;font-size:2rem;font-variant-numeric:tabular-nums;margin:4px 0 10px}
 #msg{font-size:.85rem;color:var(--sub);min-height:1.2em;margin-top:10px;white-space:pre-wrap}
 #msg.err{color:var(--rec)}
 .unsupported{background:var(--rec);color:#fff;border-radius:10px;padding:12px;font-size:.9rem;margin-bottom:12px;display:none}
-.tabs{display:flex;gap:6px;margin-bottom:6px}
-.tabs button{flex:1;background:transparent;color:var(--ink);border:2px solid var(--line);padding:9px}
-.tabs button[aria-selected="true"]{background:var(--c);border-color:var(--c);color:#fff}
-@media (prefers-color-scheme:dark){.tabs button[aria-selected="true"]{color:#141b23}}
-#forceTitle{font-size:.85rem;color:var(--sub);margin:6px 0 0;word-break:break-all}
-.chart{width:100%;height:210px;display:block}
 #footCanvas{width:100%;display:block;margin-top:8px}
 .footBar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-#imgView{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;
-  padding:calc(16px + env(safe-area-inset-top,0px)) 12px calc(16px + env(safe-area-inset-bottom,0px))}
-#imgView .box{background:var(--panel);border-radius:14px;padding:14px;max-width:720px;width:100%;max-height:100%;overflow:auto}
-#imgView p{margin:0 0 10px;font-size:.9rem}
-#imgView img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:6px;margin-bottom:10px;-webkit-touch-callout:default}
-#imgView .close{width:100%}
-.forceActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-.filebtn input{position:absolute;opacity:0;width:1px;height:1px}
-#forceEmpty{color:var(--sub);font-size:.9rem;margin:4px 0 12px}
 </style>
 </head>
 <body>
 <main>
   <h1>インソール計測アプリ<small>4センサー版</small></h1>
-  <p class="lead">計測情報を入力し、左右のマイコンを接続してから「記録開始」を押してください。記録を停止すると、データは自動で Google ドライブに保存されます。</p>
+  <p class="lead">計測情報を入力し、左右のマイコンを接続してから「記録開始」を押してください。記録を停止したら、「ドライブに送る」か「破棄する」を選んでください。</p>
 
   <div class="unsupported" id="unsupported">このブラウザは Web Bluetooth に対応していません。Android は Chrome、iPhone は <a href="https://apps.apple.com/jp/app/bluefy-web-ble-browser/id1492822055" style="color:#fff;text-decoration:underline">Bluefy</a> アプリで開いてください。保存済み CSV のグラフ表示はこのままでも使えます。</div>
 
@@ -166,9 +155,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
       <canvas id="footCanvas"></canvas>
       <div class="footBar">
         <button id="rezero" class="subBtn">ゼロ点を取り直す</button>
-        <div><label for="fzScale" style="margin-top:0">色が一番濃くなる Fz（nH）</label><input id="fzScale" type="number" inputmode="numeric" min="10" step="100" value="3500"></div>
+        <div><label for="fzScale" style="margin-top:0">色が一番濃くなる Fz（nH）</label><input id="fzScale" type="number" inputmode="numeric" min="10" step="10" value="200"></div>
       </div>
-      <label for="loadSign">荷重による L の変化の向き（Fx・Fy・Fz・グラフのすべてに効きます）</label>
+      <label for="loadSign">荷重による L の変化の向き（足型ビュー・波形・ドライブに送るグラフ画像のすべてに効きます）</label>
       <select id="loadSign">
         <option value="1">荷重で L が増える（ΔL をそのまま使う。foot_view.py と同じ）</option>
         <option value="-1">荷重で L が減る（ΔL の符号を反転する）</option>
@@ -181,6 +170,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     <div id="timer">00:00</div>
     <div class="controls">
       <button id="recBtn" disabled>記録開始</button>
+      <div id="decide" class="decide" hidden>
+        <p id="decideText"></p>
+        <div class="grid2">
+          <button id="sendBtn">ドライブに送る</button>
+          <button id="discardBtn" class="subBtn">破棄する</button>
+        </div>
+      </div>
       <button id="shareBtn" disabled>CSV を共有</button>
       <button id="copyL" class="subBtn" disabled hidden>左足をコピー</button>
       <button id="copyR" class="subBtn" disabled hidden>右足をコピー</button>
@@ -188,31 +184,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     <div id="msg"></div>
   </section>
 
-  <section id="force">
-    <h2>力のグラフ</h2>
-    <p id="forceEmpty">記録を停止するか、保存済みの CSV を読み込むと表示されます。</p>
-    <div class="tabs" id="tabs" hidden>
-      <button style="--c:var(--left)" data-side="L" aria-selected="false">左足</button>
-      <button style="--c:var(--right)" data-side="R" aria-selected="false">右足</button>
-    </div>
-    <p id="forceTitle"></p>
-    <div id="charts"></div>
-    <p class="hint">値はセンサーごとの4コイルのインダクタンス変化 ΔL（nH、キャリブレーション前）から foot_view.py と同じ式で計算し、ローパスフィルタをかけたものです。ゼロ点は記録開始直後の1秒の平均です。</p>
-    <div class="forceActions">
-      <label class="filebtn">CSV を読み込む<input type="file" id="fileIn" accept=".csv,text/csv" multiple></label>
-      <button id="pngBtn" disabled>画像を共有</button>
-    </div>
-  </section>
   <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.1.0（4センサー版）</p>
 </main>
-
-<div id="imgView" hidden>
-  <div class="box">
-    <p>画像を<b>長押し</b>して、「“写真”に保存」または「共有」を選んでください。</p>
-    <div class="imgs"></div>
-    <button class="close">閉じる</button>
-  </div>
-</div>
 
 <script src="core.js"></script>
 <script src="geometry.js"></script>
@@ -251,7 +224,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   if (!$("notify").value) $("notify").value = DEFAULT_NOTIFY;
 
   $("legend").innerHTML = SENSOR_COLORS.map((c,i)=>`<span style="--k:${c}">S${i+1}</span>`).join("")
-    + "<span style='--k:transparent'>（S1 = つま先側 … S4 = かかと側。4コイル合計の生データ）</span>";
+    + "<span style='--k:transparent'>（S1 = つま先側 … S4 = かかと側。4コイル合計の変化量。接続直後の1秒を 0 とする）</span>";
 
   // 被験者 ID の入力履歴
   function subjects(){ try { return JSON.parse(store.get("subjects") || "[]"); } catch { return []; } }
@@ -292,6 +265,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   const feet = { L: makeFoot("L"), R: makeFoot("R") };
   const sideName = s => s === "L" ? "左足" : "右足";
   let recording = false, recStart = 0, recStamp = "", recDate = "";
+  let pending = null;   // 停止したが、送るか破棄するかをまだ選んでいない記録
 
   function onSample(f, s){
     if (recording) f.rows.push([s.ts, ...s.values]);
@@ -300,14 +274,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     const now = performance.now();
     f.recvTimes.push(now);
     while (f.recvTimes.length && now - f.recvTimes[0] > 2000) f.recvTimes.shift();
-    for (let i=0;i<C.SENS;i++){
-      const p = f.plot[i];
-      p.push(s.values[4*i] + s.values[4*i+1] + s.values[4*i+2] + s.values[4*i+3]);
-      if (p.length > PLOT_POINTS) p.shift();
-    }
     if (!f.zero){
       f.zeroAcc.push(s.values);
       if (f.zeroAcc.length >= ZERO_N) f.zero = meanIgnoringNan(f.zeroAcc), f.zeroAcc = [];
+    }
+    // 波形はゼロ点（接続直後の1秒の平均）を引いた変化量。ゼロ点が取れるまでは描かない
+    if (f.zero){
+      const sign = parseFloat($("loadSign").value) || 1;
+      for (let i=0;i<C.SENS;i++){
+        let d = 0;
+        for (let c=0;c<C.COILS;c++) d += s.values[4*i+c] - f.zero[4*i+c];
+        const p = f.plot[i];
+        p.push(sign*d);
+        if (p.length > PLOT_POINTS) p.shift();
+      }
     }
     if (!f.sideChecked){
       f.sideChecked = true;
@@ -326,7 +306,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     }
     return out;
   }
-  function restartZero(f){ f.zero = null; f.zeroAcc = []; f.trail = []; }
+  const clearPlot = f => f.plot.forEach(p => p.length = 0);
+  function restartZero(f){ f.zero = null; f.zeroAcc = []; f.trail = []; clearPlot(f); }
 
   function setState(f, text, on){
     f.stateEl.textContent = text;
@@ -416,7 +397,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   const anyConnected = () => Object.values(feet).some(isConnected);
   const hasData = () => Object.values(feet).some(f => f.rows.length);
   function updateButtons(){
-    $("recBtn").disabled = !recording && !anyConnected();
+    $("recBtn").disabled = !recording && (!anyConnected() || !!pending);   // 送るか破棄するか選ぶまで次の記録はできない
     $("shareBtn").disabled = recording || !hasData() || !navigator.canShare;
     ["L","R"].forEach(s => $("copy"+s).disabled = recording || !feet[s].rows.length);
   }
@@ -455,19 +436,42 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
       keepAwake(false);
       const lines = ["L","R"].filter(s => feet[s].rows.length || isConnected(feet[s]))
         .map(s => `${sideName(s)} ${feet[s].rows.length} 行`);
-      msg(`記録を停止しました。${lines.join("、")}。`);
       lastNames = { L:fileName("L", recStamp), R:fileName("R", recStamp) };
-      const loaded = {};
-      ["L","R"].forEach(s => { if (feet[s].rows.length) loaded[s] = { name:lastNames[s], rows:feet[s].rows }; });
-      showForce(loaded, true);
-      queueUpload();
+      const sec = Math.floor((performance.now() - recStart)/1000);
       if (hasData()){
-        rememberSubject(subjectStr());
-        const n = parseInt($("trial").value, 10);
-        if (isFinite(n)){ $("trial").value = n + 1; store.set("trial", String(n + 1)); updatePreview(); }
-      }
+        // 送るか破棄するかは被験者が選ぶ。選ぶまでの間に計測情報を書き換えても、停止した時点の内容で扱う
+        pending = { key:infoKey(), trial:parseInt($("trial").value, 10), subject:subjectStr(), folders:[recDate, subjectStr() || "IDなし"] };
+        $("decideText").textContent = `この記録（${z2(Math.floor(sec/60))}:${z2(sec%60)}）をドライブに送りますか？ うまく取れなかったときは「破棄する」を押してください。`;
+        $("decide").hidden = false;
+        msg(`記録を停止しました。${lines.join("、")}。`);
+        $("decide").scrollIntoView({ behavior:"smooth", block:"center" });
+      } else msg(`記録を停止しました。${lines.join("、")}。`);
     }
     updateButtons();
+  });
+
+  // ---- 記録を送る / 破棄する ----
+  function endDecision(){ pending = null; $("decide").hidden = true; updateButtons(); }
+  $("sendBtn").addEventListener("click", () => {
+    if (!pending) return;
+    const p = pending;
+    queueUpload(p.folders);
+    rememberSubject(p.subject);
+    if (isFinite(p.trial)){
+      if (infoKey() === p.key) setTrial(p.trial + 1);
+      else rememberTrial(p.trial + 1, p.key);
+    }
+    endDecision();
+    msg("ドライブに送ります。送信の状況は「Google ドライブ」の欄に出ます。");
+  });
+  $("discardBtn").addEventListener("click", () => {
+    if (!pending) return;
+    if (!confirm("この記録を破棄します。ドライブには送られず、元に戻せません。よろしいですか？")) return;
+    const p = pending;
+    Object.values(feet).forEach(f => f.rows = []);
+    lastNames = {};
+    endDecision();
+    msg(`記録を破棄しました。${isFinite(p.trial) ? `試行回数は ${p.trial} のままです。` : ""}`);
   });
 
   // ---- ファイル名（insole_live_collect_plot.py と同じ形式） ----
@@ -503,16 +507,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     $("namePreview").innerHTML = "次のファイル名: <b>" + fileName("L", "<開始日時>").replace(/</g,"&lt;") + "</b>" + notes.map(t => "<br>" + t).join("");
   }
   ["size","subject","exp","trial"].forEach(id => { $(id).addEventListener("input", updatePreview); $(id).addEventListener("change", updatePreview); });
-  // サイズ・被験者・実験名のどれかが変わったら、試行回数を 1 に戻す
+  // 試行回数は「サイズ・被験者・実験名」の組み合わせごとに覚えておく。
+  // nobori → kudari → nobori と戻したときは、nobori の続きの番号になる（初めての組み合わせは 1）
   const infoKey = () => [sizeStr(), subjectStr(), expBase()].join("|");
+  function trialMap(){ try { return JSON.parse(store.get("trials") || "{}"); } catch { return {}; } }
+  function rememberTrial(n, k = infoKey()){
+    const m = trialMap();
+    delete m[k]; m[k] = n;                         // 最近使った組み合わせを後ろに
+    const keys = Object.keys(m);
+    keys.slice(0, Math.max(0, keys.length - 100)).forEach(x => delete m[x]);   // 古いものから捨てる
+    store.set("trials", JSON.stringify(m));
+  }
+  function setTrial(n){ $("trial").value = n; store.set("trial", String(n)); rememberTrial(n); updatePreview(); }
+  $("trial").addEventListener("change", () => { const n = parseInt($("trial").value, 10); if (n > 0) rememberTrial(n); });
   let lastInfoKey = infoKey();
+  if (!(lastInfoKey in trialMap())) rememberTrial(parseInt($("trial").value, 10) || 1);
   function resetTrialIfChanged(){
     const k = infoKey();
     if (k === lastInfoKey) return;
     lastInfoKey = k;
-    if ($("trial").value !== "1"){
-      $("trial").value = "1"; store.set("trial", "1");
-      msg("計測情報が変わったので、試行回数を 1 に戻しました。");
+    const n = trialMap()[k] || 1;                  // 入力途中の名前（nob など）は覚えない
+    if ($("trial").value !== String(n)){
+      $("trial").value = n; store.set("trial", String(n));
+      msg(n > 1 ? `前回の続きなので、試行回数を ${n} にしました。` : "計測情報が変わったので、試行回数を 1 にしました。");
     }
     updatePreview();
   }
@@ -585,11 +602,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   function drawLive(f){
     const { ctx, w, h } = fitCanvas(f.canvas);
     ctx.clearRect(0,0,w,h);
-    let min = Infinity, max = -Infinity;
+    if (f.latest && !f.zero){
+      ctx.font = `600 12px ${getComputedStyle(document.body).fontFamily}`; ctx.fillStyle = cssVar("--sub");
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(`ゼロ点を取得中 ${Math.round(f.zeroAcc.length/ZERO_N*100)}%（足を乗せないでください）`, w/2, h/2, w - 16);
+      return;
+    }
+    let min = 0, max = 0;   // 0 の線がいつも見えるように
     f.plot.forEach(p => p.forEach(v => { if (v<min) min=v; if (v>max) max=v; }));
-    if (!isFinite(min)) return;
+    if (!f.plot[0].length) return;
     if (max - min < 10){ max += 5; min -= 5; }
     const pad = 6;
+    const y0 = pad + (1 - (0-min)/(max-min)) * (h - 2*pad);
+    ctx.strokeStyle = cssVar("--line"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, y0); ctx.lineTo(w, y0); ctx.stroke();
     f.plot.forEach((p, i) => {
       if (p.length < 2) return;
       ctx.beginPath(); ctx.strokeStyle = SENSOR_COLORS[i]; ctx.lineWidth = 1.5;
@@ -650,7 +676,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     const { ctx, h } = fitCanvas(c, Math.round(top + (FOOT.yhi - FOOT.ylo)*sc + bottom));
     ctx.clearRect(0,0,w,h);
     const ink = cssVar("--ink"), sub = cssVar("--sub"), panel = cssVar("--panel");
-    const fzScale = Math.max(10, parseFloat($("fzScale").value) || 3500);
+    const fzScale = Math.max(10, parseFloat($("fzScale").value) || 200);
     const loadSign = parseFloat($("loadSign").value) || 1;
     const font = getComputedStyle(document.body).fontFamily;
 
@@ -754,7 +780,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     Object.values(feet).forEach(restartZero);
     msg("ゼロ点を取り直しています。1秒間、両足を浮かせておいてください。");
   });
-  $("loadSign").addEventListener("change", () => { Object.values(feet).forEach(f => f.trail = []); recomputeForce(); });
+  $("loadSign").addEventListener("change", () => { Object.values(feet).forEach(f => { f.trail = []; clearPlot(f); }); });
 
   function tick(){
     Object.values(feet).forEach(f => {
@@ -780,7 +806,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   requestAnimationFrame(tick);
   document.addEventListener("visibilitychange", () => { if (recording && document.visibilityState === "visible") keepAwake(true); });
 
-  // ---- 力のグラフ ----
+  // ---- ドライブに送るグラフ画像（画面には表示しない） ----
   const PANELS = [
     { d:"x", kind:"each", title:"Fx: shear, medial +" },
     { d:"x", kind:"sum",  title:"Fx total (S1-S4)" },
@@ -789,9 +815,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     { d:"z", kind:"each", title:"Fz: sum of 4 coils" },
     { d:"z", kind:"sum",  title:"Fz total (S1-S4)" },
   ];
-  let forceData = {}, forceSide = null;
-
-  const sideOfName = n => /data_left|(^|_)L_|left/i.test(n) ? "L" : /data_right|(^|_)R_|right/i.test(n) ? "R" : null;
   const titleOf = n => n.replace(/\.csv$/i,"");
 
   function panelSeries(F, p){
@@ -865,116 +888,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     ctx.restore();
   }
 
-  function screenTheme(){
-    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-    return { ink:cssVar("--ink"), sub:cssVar("--sub"),
-      grid: dark ? "#33404e" : "#dfe4ea", legendBg: dark ? "rgba(29,38,49,.85)" : "rgba(255,255,255,.85)",
-      font:getComputedStyle(document.body).fontFamily };
-  }
   const paperTheme = { ink:"#000", sub:"#333", grid:"#d9d9d9", legendBg:"rgba(255,255,255,.85)",
     font:'"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif' };
 
-  const durationOf = fd => fd.F.time[fd.F.time.length-1] || 0;
-  function renderForce(){
-    const box = $("charts"); box.innerHTML = "";
-    const fd = forceData[forceSide];
-    if (!fd) return;
-    $("forceTitle").textContent = titleOf(fd.name) + `（${fd.rows.length} 行, ${durationOf(fd).toFixed(1)} 秒）`;
-    const th = screenTheme();
-    let lastD = null;
-    PANELS.forEach(p => {
-      if (p.d !== lastD){ const h = document.createElement("h3"); h.textContent = `${p.d.toUpperCase()} 方向`; box.appendChild(h); lastD = p.d; }
-      const c = document.createElement("canvas"); c.className = "chart"; box.appendChild(c);
-      const { ctx, w, h } = fitCanvas(c);
-      drawChart(ctx, 0, 0, w, h, p.title, fd.F.time, panelSeries(fd.F, p), th, 1);
-    });
-  }
-
-  function selectSide(side){
-    forceSide = side;
-    $("tabs").querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.side === side)));
-    renderForce();
-  }
-
-  const forceOpts = () => ({ zeroSeconds:1, loadSign: parseFloat($("loadSign").value) || 1 });
-  function showForce(entries, replace){
-    if (replace) forceData = {};
-    for (const [side, e] of Object.entries(entries)){
-      if (e.rows.length < 2) continue;
-      forceData[side] = { name:e.name, rows:e.rows, F: C.forceSeries(e.rows, side, forceOpts()) };
-    }
-    const sides = Object.keys(forceData);
-    $("forceEmpty").hidden = sides.length > 0;
-    $("tabs").hidden = sides.length === 0;
-    $("tabs").querySelectorAll("button").forEach(b => b.disabled = !forceData[b.dataset.side]);
-    $("pngBtn").disabled = sides.length === 0;
-    if (sides.length) selectSide(forceData[forceSide] ? forceSide : (forceData.L ? "L" : "R"));
-    else { $("charts").innerHTML = ""; $("forceTitle").textContent = ""; }
-  }
-  function recomputeForce(){
-    for (const [side, fd] of Object.entries(forceData)) fd.F = C.forceSeries(fd.rows, side, forceOpts());
-    renderForce();
-  }
-
-  $("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b && !b.disabled) selectSide(b.dataset.side); });
-
-  $("fileIn").addEventListener("change", async e => {
-    const entries = {}, errors = [];
-    for (const file of e.target.files){
-      try{
-        const rows = C.parseCsv(await file.text());
-        if (rows.length < 2) throw new Error("データ行がありません（17列の CSV ではないようです）");
-        const side = sideOfName(file.name) || (entries.L || forceData.L ? "R" : "L");
-        entries[side] = { name:file.name, rows };
-      }catch(err){ errors.push(`${file.name}: ${err.message}`); }
-    }
-    showForce(entries, false);
-    if (errors.length) msg("読み込めなかったファイル:\n" + errors.join("\n"), true);
-    e.target.value = "";
-  });
-
-  function renderPng(side){
-    const fd = forceData[side]; if (!fd) return null;
+  function renderPng(side, name, rows){
+    if (rows.length < 2) return null;
+    const F = C.forceSeries(rows, side, { zeroSeconds:1, loadSign: parseFloat($("loadSign").value) || 1 });
+    const duration = F.time[F.time.length-1] || 0;
     const s = 1.5, W = 1400*s, H = 1000*s;
     const c = document.createElement("canvas"); c.width = W; c.height = H;
     const ctx = c.getContext("2d");
     ctx.fillStyle = "#fff"; ctx.fillRect(0,0,W,H);
-    const title = titleOf(fd.name);
+    const title = titleOf(name);
     ctx.font = `700 ${18*s}px ${paperTheme.font}`; ctx.fillStyle = "#000"; ctx.textAlign = "center"; ctx.textBaseline = "top";
     ctx.fillText(title, W/2, 10*s);
     ctx.font = `${11*s}px ${paperTheme.font}`; ctx.fillStyle = "#333";
     const sign = parseFloat($("loadSign").value) < 0 ? "-ΔL" : "+ΔL";
-    ctx.fillText(`ΔL [nH] before calibration, low-pass filtered, zero = mean of first 1 s, load sign ${sign}, ${fd.rows.length} rows, ${durationOf(fd).toFixed(1)} s`, W/2, 32*s);
+    ctx.fillText(`ΔL [nH] before calibration, low-pass filtered, zero = mean of first 1 s, load sign ${sign}, ${rows.length} rows, ${duration.toFixed(1)} s`, W/2, 32*s);
     const top = 52*s, cw = (W - 30*s)/2, ch = (H - top - 10*s)/3;
     PANELS.forEach((p, i) => {
-      drawChart(ctx, 10*s + (i%2)*(cw+10*s), top + Math.floor(i/2)*ch, cw, ch - 8*s, p.title, fd.F.time, panelSeries(fd.F, p), paperTheme, s);
+      drawChart(ctx, 10*s + (i%2)*(cw+10*s), top + Math.floor(i/2)*ch, cw, ch - 8*s, p.title, F.time, panelSeries(F, p), paperTheme, s);
     });
     return { canvas:c, title };
   }
-
-  // 左右のグラフ画像をまとめて共有。画像作成は同期処理なので、タップ直後のうちに共有メニューを開ける（iPhone 対策）
-  $("pngBtn").addEventListener("click", () => {
-    const imgs = ["L","R"].map(s => renderPng(s)).filter(Boolean).map(p => {
-      const url = p.canvas.toDataURL("image/png");
-      const bin = atob(url.split(",")[1]), bytes = new Uint8Array(bin.length);
-      for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-      return { url, file: new File([bytes], p.title + ".png", { type:"image/png" }) };
-    });
-    if (!imgs.length) return;
-    const files = imgs.map(i => i.file);
-    if (navigator.canShare && navigator.canShare({ files })){
-      navigator.share({ files }).catch(err => { if (err.name !== "AbortError") showImages(imgs); });
-      return;
-    }
-    showImages(imgs);
-  });
-  function showImages(imgs){
-    const box = $("imgView").querySelector(".imgs");
-    box.innerHTML = "";
-    imgs.forEach(i => { const im = document.createElement("img"); im.src = i.url; im.alt = i.file.name; box.appendChild(im); });
-    $("imgView").hidden = false;
-  }
-  $("imgView").addEventListener("click", e => { if (e.target.closest(".close") || e.target === $("imgView")) $("imgView").hidden = true; });
 
   // ---- Google ドライブへのアップロード（Apps Script 経由。5センサー版アプリと同じ受け口を使える） ----
   ["gdUrl","gdToken"].forEach(f => {
@@ -1007,7 +943,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     $("gdStatus").className = "hint";
     $("gdStatus").textContent = gdBusy ? "アップロード中…"
       : !ready ? (n ? `合言葉が未入力です。未送信のデータが ${n} 件あります。下の「合言葉の設定」を開いて入力してください。` : "合言葉が未入力です。下の「合言葉の設定」を開いて入力してください。")
-      : gdLast || "記録を停止すると自動でアップロードします。";
+      : gdLast || "記録を停止して「ドライブに送る」を押すと、アップロードします。";
   }
 
   async function post(body){
@@ -1034,16 +970,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
     return j;
   }
 
-  async function queueUpload(){
+  async function queueUpload(folders){
     const files = [];
     ["L","R"].forEach(s => {
       if (!feet[s].rows.length) return;
       files.push({ name:recName(s), sub:"csv", mimeType:"text/csv", text: C.rowsToCsv(feet[s].rows) });
-      const png = renderPng(s);
+      const png = renderPng(s, recName(s), feet[s].rows);
       if (png) files.push({ name:png.title + ".png", sub:"png", mimeType:"image/png", base64: png.canvas.toDataURL("image/png").split(",")[1] });
     });
     if (!files.length) return;
-    try { await qPut({ folders: [recDate, subjectStr() || "IDなし"], files }); }
+    try { await qPut({ folders, files }); }
     catch (err) { gdLast = "端末に一時保存できませんでした: " + err.message; gdShow(); return; }
     flush();
   }
@@ -1081,8 +1017,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
   window.addEventListener("online", flush);
   gdShow(); flush();
 
-  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderForce, 200); });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", renderForce);
   updateButtons();
 })();
 </script>
