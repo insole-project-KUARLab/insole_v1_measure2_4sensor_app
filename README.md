@@ -192,5 +192,5 @@ timestamp_ms, s1c1, s1c2, s1c3, s1c4, s2c1, …, s4c4
 - main に push すると1〜2分で公開ページに反映されます。そのとき `sw.js` の `VERSION` の数字を上げてください（上げないと、スマホに古い版が残ることがあります）。
 - 送信先の受け口（Apps Script）の URL は `index.html` の `DEFAULT_GD_URL` に書いてあります。保存先のフォルダは Apps Script 側の `FOLDER_ID` で決まります。
 - 体重の保存には、`apps_script.gs` の新しい版（`saveWeight_` があるもの）が必要です。古い受け口のままだと、アプリに「体重の保存に対応していない古い版です」と出て、体重は端末に残ったままになります（CSV は送られます）。
-- 受け口を新しく作るときは、`apps_script.gs` を [script.google.com](https://script.google.com) に貼り付け、`FOLDER_ID` と `TOKEN`（合言葉）を書き換えて、「ウェブアプリ」（実行するユーザー: 自分、アクセスできるユーザー: 全員）としてデプロイします。表示された URL で `DEFAULT_GD_URL` を書き換えてください。Apps Script を書き換えたときは、「デプロイを管理」→ 鉛筆マーク →「新バージョン」でデプロイし直します（URL は変わりません）。貼り直すときは、`FOLDER_ID` と `TOKEN` を元の値に書き換えるのを忘れないでください。スプレッドシートを使う権限を新しく求められたら、許可してください。
+- 受け口を新しく作るときは、`apps_script.gs` を [script.google.com](https://script.google.com) に貼り付け、`FOLDER_ID` と `TOKEN`（合言葉）を書き換えて、「ウェブアプリ」（実行するユーザー: 自分、アクセスできるユーザー: 全員）としてデプロイします。表示された URL で `DEFAULT_GD_URL` を書き換えてください。Apps Script を書き換えたときは、「デプロイを管理」→ 鉛筆マーク →「新バージョン」でデプロイし直します（URL は変わりません）。貼り直すときは、`FOLDER_ID` と `TOKEN` を元の値に書き換えるのを忘れないでください。体重の保存を初めて使うときは、エディタ上部の関数の選択欄で `setup` を選んで「実行」を押し、スプレッドシートを使う許可を出してください（デプロイし直すだけでは許可の画面が出ず、アプリに「SpreadsheetApp.create を呼び出す権限がありません」と出ます）。
 - パケットの解読・CSV・力の計算は `core.js` にあり、`node test/core.test.js` でテストできます。

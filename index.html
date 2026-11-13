@@ -1065,7 +1065,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.filebtn:focus-wit
       }
       if (oldScript) gdLast = "アップロードできませんでした: 送信先（Apps Script）が体重の保存に対応していない古い版です。管理している人に、apps_script.gs を貼り直して新バージョンでデプロイするよう伝えてください。";
     }catch(err){
-      gdLast = `アップロードできませんでした: ${err.message}。データは端末に残っているので、電波のある場所で「未送信を再送」を押してください。`;
+      gdLast = `アップロードできませんでした: ${err.message.replace(/。+$/, "")}。データは端末に残っているので、電波のある場所で「未送信を再送」を押してください。`;
     }
     gdBusy = false; await gdShow();
     if (gdLast.startsWith("アップロードできません")) $("gdStatus").className = "hint err";

@@ -15,6 +15,14 @@ const FOLDER_ID = "ここに保存先フォルダの ID";
 const TOKEN = "ここに合言葉";
 const WEIGHT_SHEET_NAME = "insole_体重記録";
 
+// 体重の保存を使う前に、エディタでこの関数を選んで「実行」を一度押す。
+// スプレッドシートを使う許可の画面が出るので許可する（デプロイし直すだけでは許可の画面が出ない）。
+// 体重の表がまだなければ、ここで作られる。表の URL は「実行ログ」に出る
+function setup() {
+  const sheet = weightSheet_();
+  Logger.log("体重の表: " + sheet.getParent().getUrl());
+}
+
 function doGet() {
   try {
     DriveApp.getFolderById(FOLDER_ID).getName();
