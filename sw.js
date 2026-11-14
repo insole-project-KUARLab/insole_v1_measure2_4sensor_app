@@ -1,5 +1,5 @@
 // アプリを更新したら VERSION の数字を上げてください
-const VERSION = "v14";
+const VERSION = "v15";
 const PREFIX = "insole4-";
 const CACHE = PREFIX + VERSION;
 const FILES = ["./", "./index.html", "./core.js", "./geometry.js", "./manifest.webmanifest",

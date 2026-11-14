@@ -23,10 +23,14 @@
   :root{--bg:#141b23;--panel:#1d2631;--ink:#e6edf3;--sub:#9aa9b8;--line:#33404e;
     --left:#3cc2c4;--right:#f0a456;--rec:#ff5c64;--ok:#5fcf8c;--warn:#f0b35a;--brand:#7fb0e0;color-scheme:dark;}
 }
-*,*::before,*::after{box-sizing:inherit}
+/* 折りたたみ（details）の中でも枠の幅に収まるように、inherit ではなく直接指定する */
+*,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);
   font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;
   -webkit-text-size-adjust:100%}
+/* ファイル名のような長い英数字も、枠の端で折り返す */
+body{overflow-wrap:anywhere;word-break:normal}
+section,details,.controls>*,.grid2>*,.decide,.quality{min-width:0}
 main{max-width:720px;margin:0 auto;padding:16px 14px 40px}
 h1{font-size:1.35rem;margin:4px 0 2px;letter-spacing:.02em}
 h1 small{font-size:.8rem;color:var(--brand);font-weight:600;margin-left:6px}
@@ -202,7 +206,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     </details>
   </section>
 
-  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.4.0（4センサー版）</p>
+  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.4.1（4センサー版）</p>
 </main>
 
 <script src="core.js"></script>
