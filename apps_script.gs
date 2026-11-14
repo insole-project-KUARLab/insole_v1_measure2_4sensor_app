@@ -7,20 +7,24 @@
  * 保存先: FOLDER_ID のフォルダ / <記録した日付> / <被験者 ID> / csv（または png） / ファイル
  * 同じ名前で中身が同じファイルがあれば何もしない。中身が違えば上書きせずに _2, _3 … を付けて保存する。
  *
- * 体重: FOLDER_ID のフォルダには保存しない。このスクリプトをデプロイした人のマイドライブに
- * スプレッドシート「insole_体重記録」を作り（最初の1回だけ）、そこに 日付・被験者 ID・体重 を書き込む。
+ * 体重と靴の写真: FOLDER_ID のフォルダには保存しない。このスクリプトをデプロイした人のマイドライブに
+ * スプレッドシート「insole_体重記録」とフォルダ「insole_靴の写真」を作り（最初の1回だけ）、
+ * 表に 日付・被験者 ID・体重・写真の URL を書き込む。写真はフォルダに保存する。
  * 作ったファイルは誰とも共有されないので、デプロイした人だけが見られる。同じ日・同じ被験者は上書きする。
  */
 const FOLDER_ID = "ここに保存先フォルダの ID";
 const TOKEN = "ここに合言葉";
 const WEIGHT_SHEET_NAME = "insole_体重記録";
+const SHOE_FOLDER_NAME = "insole_靴の写真";
+const HEADER = ["日付", "被験者 ID", "体重 (kg)", "記録日時", "靴の写真"];
 
-// 体重の保存を使う前に、エディタでこの関数を選んで「実行」を一度押す。
-// スプレッドシートを使う許可の画面が出るので許可する（デプロイし直すだけでは許可の画面が出ない）。
-// 体重の表がまだなければ、ここで作られる。表の URL は「実行ログ」に出る
+// 体重・靴の写真の保存を使う前に、エディタでこの関数を選んで「実行」を一度押す。
+// 許可の画面が出たら許可する（デプロイし直すだけでは許可の画面が出ない）。
+// 表とフォルダがまだなければ、ここで作られる。場所は「実行ログ」に出る
 function setup() {
   const sheet = weightSheet_();
   Logger.log("体重の表: " + sheet.getParent().getUrl());
+  Logger.log("靴の写真のフォルダ: " + shoeFolder_().getUrl());
 }
 
 function doGet() {
@@ -46,7 +50,8 @@ function doPost(e) {
       (body.folders || []).forEach(name => { dir = child_(dir, safe_(name)); });
       const saved = (body.files || []).map(f => save_(child_(dir, safe_(f.sub || "other")), f));
       if (body.weight) saveWeight_(body.weight);
-      return reply_({ ok: true, saved: saved, weight: !!body.weight });
+      if (body.shoe) saveShoe_(body.shoe);
+      return reply_({ ok: true, saved: saved, weight: !!body.weight, shoe: !!body.shoe });
     } finally {
       lock.releaseLock();
     }
@@ -73,36 +78,82 @@ function save_(dir, f) {
   throw new Error("同じ名前のファイルが多すぎます: " + name);
 }
 
-// 同じ日付・被験者 ID の行があれば上書きし、なければ末尾に足す
 function saveWeight_(w) {
-  const date = String(w.date || "").replace(/\D/g, "");
-  const subject = String(w.subject || "").replace(/[^A-Za-z0-9\-._]/g, "");  // 数式として解釈される文字を入れない
+  const day = day_(w);
   const kg = Math.round(Number(w.kg) * 10) / 10;
-  if (date.length !== 8 || !subject || !(kg >= 5 && kg <= 200)) throw new Error("体重の値が正しくありません");
+  if (!(kg >= 5 && kg <= 200)) throw new Error("体重の値が正しくありません");
   const sheet = weightSheet_();
+  const row = dayRow_(sheet, day);
+  sheet.getRange(row, 3, 1, 2).setValues([[kg, new Date()]]);
+}
+
+// 靴の写真は SHOE_FOLDER_NAME のフォルダに「日付_被験者ID.jpg」で保存し、表の同じ行に写真の URL を書く。
+// 同じ日・同じ被験者で撮り直したときは、前の写真をゴミ箱に移して入れ替える
+function saveShoe_(p) {
+  const day = day_(p);
+  if (!p.base64) throw new Error("靴の写真がありません");
+  const folder = shoeFolder_();
+  const name = day.date + "_" + day.subject + ".jpg";
+  const old = folder.getFilesByName(name);
+  while (old.hasNext()) old.next().setTrashed(true);
+  const file = folder.createFile(Utilities.newBlob(Utilities.base64Decode(p.base64), "image/jpeg", name));
+  const sheet = weightSheet_();
+  const row = dayRow_(sheet, day);
+  sheet.getRange(row, 4, 1, 2).setValues([[new Date(), file.getUrl()]]);
+}
+
+function day_(x) {
+  const date = String(x.date || "").replace(/\D/g, "");
+  const subject = String(x.subject || "").replace(/[^A-Za-z0-9\-._]/g, "");  // 数式として解釈される文字を入れない
+  if (date.length !== 8 || !subject) throw new Error("日付か被験者 ID が正しくありません");
+  return { date: date, subject: subject };
+}
+
+// 同じ日付・被験者 ID の行の番号。なければ末尾に行を足す
+function dayRow_(sheet, day) {
   const rows = sheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]) === date && String(rows[i][1]) === subject) {
-      sheet.getRange(i + 1, 3, 1, 2).setValues([[kg, new Date()]]);
-      return;
-    }
+    if (String(rows[i][0]) === day.date && String(rows[i][1]) === day.subject) return i + 1;
   }
-  sheet.appendRow([date, subject, kg, new Date()]);
+  sheet.appendRow([day.date, day.subject]);
+  return sheet.getLastRow();
+}
+
+function shoeFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty("SHOE_FOLDER_ID");
+  if (id) {
+    try {
+      const f = DriveApp.getFolderById(id);
+      if (!f.isTrashed()) return f;
+    } catch (err) { /* 削除されたときは作り直す */ }
+  }
+  const folder = DriveApp.createFolder(SHOE_FOLDER_NAME);  // マイドライブ直下。共有はしない
+  props.setProperty("SHOE_FOLDER_ID", folder.getId());
+  return folder;
 }
 
 function weightSheet_() {
   const props = PropertiesService.getScriptProperties();
   const id = props.getProperty("WEIGHT_SHEET_ID");
   if (id) {
-    try { return SpreadsheetApp.openById(id).getSheets()[0]; }
+    try { return withHeader_(SpreadsheetApp.openById(id).getSheets()[0]); }
     catch (err) { /* 削除された（ゴミ箱を空にした）ときは作り直す */ }
   }
   const ss = SpreadsheetApp.create(WEIGHT_SHEET_NAME);  // マイドライブ直下。共有はしない
   const sheet = ss.getSheets()[0];
   sheet.getRange("A:B").setNumberFormat("@");  // 日付・ID を文字のまま（0001 → 1 にならないように）
-  sheet.appendRow(["日付", "被験者 ID", "体重 (kg)", "記録日時"]);
+  sheet.appendRow(HEADER);
   sheet.setFrozenRows(1);
   props.setProperty("WEIGHT_SHEET_ID", ss.getId());
+  return withHeader_(sheet);
+}
+
+// 靴の写真の列ができる前に作った表にも、見出しを足す。
+// 記録日時は時刻まで表示する（行を先に作ってからあとで日時を書くと、日付だけの表示になることがあるため）
+function withHeader_(sheet) {
+  if (sheet.getRange(1, HEADER.length).getValue() === "") sheet.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);
+  sheet.getRange("D2:D").setNumberFormat("yyyy/mm/dd hh:mm:ss");
   return sheet;
 }
 
