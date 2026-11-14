@@ -193,7 +193,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
         <button id="rezero" class="subBtn">ゼロ点を取り直す</button>
         <div><label for="fzScale" style="margin-top:0">色が一番濃くなる Fz（nH）</label><input id="fzScale" type="number" inputmode="numeric" min="10" step="10" value="200"></div>
       </div>
-      <label for="loadSign">荷重による L の変化の向き（足型ビュー・波形・ドライブに送るグラフ画像のすべてに効きます）</label>
+      <label for="loadSign">荷重による L の変化の向き（足型ビューと波形に効きます。保存する CSV は変わりません）</label>
       <select id="loadSign">
         <option value="1">荷重で L が増える（ΔL をそのまま使う。foot_view.py と同じ）</option>
         <option value="-1">荷重で L が減る（ΔL の符号を反転する）</option>
@@ -202,7 +202,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     </details>
   </section>
 
-  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.3.0（4センサー版）</p>
+  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.4.0（4センサー版）</p>
 </main>
 
 <script src="core.js"></script>
@@ -913,112 +913,6 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
   requestAnimationFrame(tick);
   document.addEventListener("visibilitychange", () => { if (recording && document.visibilityState === "visible") keepAwake(true); });
 
-  // ---- ドライブに送るグラフ画像（画面には表示しない） ----
-  const PANELS = [
-    { d:"x", kind:"each", title:"Fx: shear, medial +" },
-    { d:"x", kind:"sum",  title:"Fx total (S1-S4)" },
-    { d:"y", kind:"each", title:"Fy: shear, anterior +" },
-    { d:"y", kind:"sum",  title:"Fy total (S1-S4)" },
-    { d:"z", kind:"each", title:"Fz: sum of 4 coils" },
-    { d:"z", kind:"sum",  title:"Fz total (S1-S4)" },
-  ];
-  const titleOf = n => n.replace(/\.csv$/i,"");
-
-  function panelSeries(F, p){
-    return p.kind === "each"
-      ? F[p.d].map((y, i) => ({ y, color:SENSOR_COLORS[i], label:`F${p.d}${i+1}` }))
-      : [{ y:F[p.d+"Sum"], color:"#e00000", label:`F${p.d} total`, width:2 }];
-  }
-
-  function niceTicks(min, max, count){
-    const span = max - min, raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
-    const step = [1,2,2.5,5,10].map(m => m*mag).find(s => span/s <= count) || 10*mag;
-    const out = [];
-    for (let v = Math.ceil(min/step)*step; v <= max + step*1e-9; v += step) out.push(+v.toFixed(10));
-    return out;
-  }
-  const fmt = v => Math.abs(v) >= 1000 ? v.toFixed(0) : +v.toPrecision(4) + "";
-
-  // ctx 上の (X,Y,W,H) にグラフを描く。s は文字・線の倍率
-  function drawChart(ctx, X, Y, W, H, title, xs, series, th, s){
-    ctx.save();
-    ctx.font = `600 ${13*s}px ${th.font}`;
-    ctx.fillStyle = th.ink; ctx.textAlign = "center"; ctx.textBaseline = "top";
-    ctx.fillText(title, X + W/2, Y);
-    const L = X + 52*s, T = Y + 22*s, R = X + W - 8*s, B = Y + H - 34*s;
-    let min = Infinity, max = -Infinity;
-    series.forEach(se => { for (const v of se.y) { if (v<min) min=v; if (v>max) max=v; } });
-    if (!isFinite(min)) { min = 0; max = 1; }
-    if (max - min < 1e-9){ min -= 1; max += 1; }
-    const padY = (max-min)*0.05; min -= padY; max += padY;
-    const xmax = xs[xs.length-1] || 1;
-    const px = x => L + (x/xmax)*(R-L);
-    const py = v => B - (v-min)/(max-min)*(B-T);
-    ctx.strokeStyle = th.grid; ctx.lineWidth = 1*s;
-    ctx.font = `${10.5*s}px ${th.font}`; ctx.fillStyle = th.sub;
-    ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    niceTicks(min, max, 5).forEach(v => {
-      const y = py(v); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(R,y); ctx.stroke();
-      ctx.fillText(fmt(v), L - 4*s, y);
-    });
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    niceTicks(0, xmax, 6).forEach(v => {
-      const x = px(v); ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,B); ctx.stroke();
-      ctx.fillText(fmt(v), x, B + 4*s);
-    });
-    ctx.strokeStyle = th.sub; ctx.strokeRect(L, T, R-L, B-T);
-    ctx.fillText("Time (s)", (L+R)/2, B + 18*s);
-    ctx.save(); ctx.translate(X + 10*s, (T+B)/2); ctx.rotate(-Math.PI/2);
-    ctx.textBaseline = "middle"; ctx.fillText("ΔL (nH)", 0, 0); ctx.restore();
-    ctx.beginPath(); ctx.rect(L, T, R-L, B-T); ctx.clip();
-    const n = xs.length, stride = Math.max(1, Math.floor(n / ((R-L)*2)));
-    series.forEach(se => {
-      ctx.beginPath(); ctx.strokeStyle = se.color; ctx.lineWidth = (se.width || 1.3)*s;
-      for (let k=0;k<n;k+=stride){ const x=px(xs[k]), y=py(se.y[k]); k ? ctx.lineTo(x,y) : ctx.moveTo(x,y); }
-      ctx.stroke();
-    });
-    ctx.restore();
-    // 凡例
-    ctx.save();
-    ctx.font = `${10*s}px ${th.font}`; ctx.textBaseline = "middle"; ctx.textAlign = "left";
-    const lh = 14*s;
-    let lw = 0; series.forEach(se => lw = Math.max(lw, ctx.measureText(se.label).width));
-    const bw = lw + 34*s, bh = series.length*lh + 6*s, bx = R - bw - 6*s, by = T + 6*s;
-    ctx.fillStyle = th.legendBg; ctx.strokeStyle = th.grid; ctx.lineWidth = 1*s;
-    ctx.fillRect(bx, by, bw, bh); ctx.strokeRect(bx, by, bw, bh);
-    series.forEach((se, i) => {
-      const y = by + 3*s + lh*(i+0.5);
-      ctx.strokeStyle = se.color; ctx.lineWidth = (se.width || 1.3)*s;
-      ctx.beginPath(); ctx.moveTo(bx + 5*s, y); ctx.lineTo(bx + 23*s, y); ctx.stroke();
-      ctx.fillStyle = th.ink; ctx.fillText(se.label, bx + 28*s, y);
-    });
-    ctx.restore();
-  }
-
-  const paperTheme = { ink:"#000", sub:"#333", grid:"#d9d9d9", legendBg:"rgba(255,255,255,.85)",
-    font:'"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif' };
-
-  function renderPng(side, name, rows){
-    if (rows.length < 2) return null;
-    const F = C.forceSeries(rows, side, { zeroSeconds:1, loadSign: parseFloat($("loadSign").value) || 1 });
-    const duration = F.time[F.time.length-1] || 0;
-    const s = 1.5, W = 1400*s, H = 1000*s;
-    const c = document.createElement("canvas"); c.width = W; c.height = H;
-    const ctx = c.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0,0,W,H);
-    const title = titleOf(name);
-    ctx.font = `700 ${18*s}px ${paperTheme.font}`; ctx.fillStyle = "#000"; ctx.textAlign = "center"; ctx.textBaseline = "top";
-    ctx.fillText(title, W/2, 10*s);
-    ctx.font = `${11*s}px ${paperTheme.font}`; ctx.fillStyle = "#333";
-    const sign = parseFloat($("loadSign").value) < 0 ? "-ΔL" : "+ΔL";
-    ctx.fillText(`ΔL [nH] before calibration, low-pass filtered, zero = mean of first 1 s, load sign ${sign}, ${rows.length} rows, ${duration.toFixed(1)} s`, W/2, 32*s);
-    const top = 52*s, cw = (W - 30*s)/2, ch = (H - top - 10*s)/3;
-    PANELS.forEach((p, i) => {
-      drawChart(ctx, 10*s + (i%2)*(cw+10*s), top + Math.floor(i/2)*ch, cw, ch - 8*s, p.title, F.time, panelSeries(F, p), paperTheme, s);
-    });
-    return { canvas:c, title };
-  }
-
   // ---- Google ドライブへのアップロード（Apps Script 経由。5センサー版アプリと同じ受け口を使える） ----
   ["gdUrl","gdToken"].forEach(f => {
     const v = store.get(f); if (v) $(f).value = v;
@@ -1077,16 +971,16 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     return j;
   }
 
+  // 保存先は insole_data / <日付> / <被験者 ID> / data_….csv（csv・png のフォルダは作らない）。
+  // 受け口は「folders のフォルダ / 各ファイルの sub のフォルダ」に保存するので、被験者 ID を sub に入れる
   async function queueUpload(folders){
-    const files = [];
+    const [day, subject] = folders, files = [];
     ["L","R"].forEach(s => {
       if (!feet[s].rows.length) return;
-      files.push({ name:recName(s), sub:"csv", mimeType:"text/csv", text: C.rowsToCsv(feet[s].rows) });
-      const png = renderPng(s, recName(s), feet[s].rows);
-      if (png) files.push({ name:png.title + ".png", sub:"png", mimeType:"image/png", base64: png.canvas.toDataURL("image/png").split(",")[1] });
+      files.push({ name:recName(s), sub:subject, mimeType:"text/csv", text: C.rowsToCsv(feet[s].rows) });
     });
     if (!files.length) return;
-    try { await qPut({ folders, files }); }
+    try { await qPut({ folders:[day], files }); }
     catch (err) { gdLast = "端末に一時保存できませんでした: " + err.message; gdShow(); return; }
     flush();
   }
@@ -1104,7 +998,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
         if (item.weight) markWeightSent(item.weight);
         if (item.shoe) markShoeSent(item.shoe);
         gdLast = item.files.length
-          ? `アップロードしました（${item.folders.join(" / ")} / ${item.files.filter(f => f.mimeType === "text/csv").map(f => f.name).join("、")}）`
+          ? `アップロードしました（${[...item.folders, item.files[0].sub].join(" / ")} / ${item.files.filter(f => f.mimeType === "text/csv").map(f => f.name).join("、")}）`
           : item.shoe ? `靴の写真を記録しました（${item.shoe.date} / ${item.shoe.subject}）`
           : `体重を記録しました（${item.weight.date} / ${item.weight.subject}）`;
       }
