@@ -75,6 +75,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .decide{border:2px solid var(--brand);border-radius:12px;padding:12px}
 .decide p{margin:0 0 10px;font-size:.9rem;font-weight:600;line-height:1.6}
 .decide .grid2{margin:0}
+.quality{font-size:.85rem;line-height:1.6;border-radius:8px;padding:8px 10px;margin:0 0 10px}
+.quality ul{margin:4px 0;padding-left:1.2em}
+.quality.good{color:var(--ok);border:1px solid var(--ok)}
+.quality.bad{color:var(--rec);border:2px solid var(--rec)}
 #sendBtn{background:var(--ok)}
 [hidden]{display:none !important}
 #timer{text-align:center;font-size:2rem;font-variant-numeric:tabular-nums;margin:4px 0 10px}
@@ -131,6 +135,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
       <button id="recBtn" disabled>記録開始</button>
       <div id="decide" class="decide" hidden>
         <p id="decideText"></p>
+        <div id="quality" class="quality"></div>
         <div class="grid2">
           <button id="sendBtn">ドライブに送る</button>
           <button id="discardBtn" class="subBtn">破棄する</button>
@@ -197,7 +202,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     </details>
   </section>
 
-  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.2.0（4センサー版）</p>
+  <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.3.0（4センサー版）</p>
 </main>
 
 <script src="core.js"></script>
@@ -384,6 +389,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 
   // 意図しない切断のときは、自動でつなぎ直す（記録中ならそのまま記録が続く）
   function onDisconnected(f){
+    if (recording) f.recDrops++;   // 記録中の切断回数（送る前の確認で知らせる）
     if (f.manual) { f.reconnecting = false; setState(f, "未接続", false); return; }
     f.reconnecting = true;
     setState(f, "切断されました。再接続中…", false);
@@ -437,7 +443,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     const b = $("recBtn");
     if (recording){
       resetTrialIfChanged();   // 開いたまま日付が変わったときも、その日の 1 から
-      Object.values(feet).forEach(f => f.rows = []);
+      Object.values(feet).forEach(f => { f.rows = []; f.recDrops = 0; f.recUsed = isConnected(f) || f.reconnecting; f.rebootAtStart = f.dec.rebooted; });
       lastNames = {};
       const now = new Date();
       recStamp = stampOf(now); recDate = recStamp.slice(0, 8);
@@ -451,11 +457,16 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
       const lines = ["L","R"].filter(s => feet[s].rows.length || isConnected(feet[s]))
         .map(s => `${sideName(s)} ${feet[s].rows.length} 行`);
       lastNames = { L:fileName("L", recStamp), R:fileName("R", recStamp) };
-      const sec = Math.floor((performance.now() - recStart)/1000);
+      const durSec = (performance.now() - recStart)/1000, sec = Math.floor(durSec);
       if (hasData()){
         // 送るか破棄するかは被験者が選ぶ。選ぶまでの間に計測情報を書き換えても、停止した時点の内容で扱う
         pending = { key:infoKey(), trial:parseInt($("trial").value, 10), subject:subjectStr(), folders:[recDate, subjectStr() || "IDなし"] };
-        $("decideText").textContent = `この記録（${z2(Math.floor(sec/60))}:${z2(sec%60)}）をドライブに送りますか？ うまく取れなかったときは「破棄する」を押してください。`;
+        $("decideText").textContent = `この記録（${z2(Math.floor(sec/60))}:${z2(sec%60)}）をドライブに送りますか？`;
+        const problems = checkRecording(durSec);
+        $("quality").className = problems.length ? "quality bad" : "quality good";
+        $("quality").innerHTML = problems.length
+          ? "<b>データに欠けがあります</b><ul>" + problems.map(t => `<li>${t}</li>`).join("") + "</ul>やり直すときは「破棄する」を押して、もう一度記録してください。"
+          : "<b>欠けはありません。</b>左右とも、最後までデータが取れています。";
         $("decide").hidden = false;
         msg(`記録を停止しました。${lines.join("、")}。`);
         $("decide").scrollIntoView({ behavior:"smooth", block:"center" });
@@ -463,6 +474,31 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     }
     updateButtons();
   });
+
+  // ---- 送る前のデータの確認 ----
+  // 40 Hz なので、記録した時間からおよその行数が分かる。足りない分を「欠け」として知らせる。
+  // - 途中の欠け: 本体の時刻（25 ms ごと）が飛んでいるところ
+  // - 切断などで取れなかった時間: 記録時間に対して行数が 0.5 秒分以上足りない
+  function checkRecording(durSec){
+    const out = [];
+    for (const s of ["L","R"]){
+      const f = feet[s], n = f.rows.length, name = sideName(s);
+      if (!n){ out.push(`${name}のデータがありません${f.recUsed ? "（記録中にデータが届きませんでした）" : "（接続されていません）"}。`); continue; }
+      let gap = 0;
+      if (f.dec.rebooted === f.rebootAtStart && n > 1){
+        const span = f.rows[n-1][0] - f.rows[0][0];
+        gap = Math.max(0, Math.round(span / (1000 / C.FS)) + 1 - n);
+      }
+      const short = Math.round(durSec * C.FS) - n;
+      const lost = Math.max(gap, short > C.FS / 2 ? short : 0);
+      if (lost > 0) out.push(`${name}: ${lost} 行（約 ${(lost / C.FS).toFixed(1)} 秒、${(lost / (n + lost) * 100).toFixed(1)}%）が欠けています。`);
+      if (f.recDrops) out.push(`${name}: 記録中に ${f.recDrops} 回接続が切れました。`);
+      const bad = f.rows.reduce((a, r) => a + (r.some((v, k) => k > 0 && !Number.isFinite(v)) ? 1 : 0), 0);
+      if (bad) out.push(`${name}: センサーエラーの行が ${bad} 行あります（ケーブルの接続を確認してください）。`);
+      if (f.dec.rebooted !== f.rebootAtStart) out.push(`${name}: 記録中に本体が再起動しました。`);
+    }
+    return out;
+  }
 
   // ---- 記録を送る / 破棄する ----
   function endDecision(){ pending = null; $("decide").hidden = true; updateButtons(); }
