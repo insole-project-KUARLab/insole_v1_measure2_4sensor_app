@@ -126,6 +126,24 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
   </section>
 
   <section>
+    <div id="timer">00:00</div>
+    <div class="controls">
+      <button id="recBtn" disabled>記録開始</button>
+      <div id="decide" class="decide" hidden>
+        <p id="decideText"></p>
+        <div class="grid2">
+          <button id="sendBtn">ドライブに送る</button>
+          <button id="discardBtn" class="subBtn">破棄する</button>
+        </div>
+      </div>
+      <button id="shareBtn" disabled>CSV を共有</button>
+      <button id="copyL" class="subBtn" disabled hidden>左足をコピー</button>
+      <button id="copyR" class="subBtn" disabled hidden>右足をコピー</button>
+    </div>
+    <div id="msg"></div>
+  </section>
+
+  <section>
     <h2>Google ドライブ</h2>
     <p class="hint" id="gdStatus">合言葉が未入力です。下の「合言葉の設定」を開いて入力してください。</p>
     <div class="controls" style="margin-top:8px">
@@ -177,24 +195,6 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
       </select>
       <p class="hint">接続直後の1秒間の平均をゼロ点にします。<b>足を乗せずに接続してください。</b>乗せたまま接続したときは、両足を浮かせてから「ゼロ点を取り直す」を押します。色は各センサーの Fz（4コイルの ΔL の合計）をなだらかに広げたもので、センサーの間の色は推定値です。黒い矢印はせん断（Fx は体の内側、Fy は前が正）、オレンジは COP と直近約1秒の軌跡です。値はキャリブレーション前の nH です。</p>
     </details>
-  </section>
-
-  <section>
-    <div id="timer">00:00</div>
-    <div class="controls">
-      <button id="recBtn" disabled>記録開始</button>
-      <div id="decide" class="decide" hidden>
-        <p id="decideText"></p>
-        <div class="grid2">
-          <button id="sendBtn">ドライブに送る</button>
-          <button id="discardBtn" class="subBtn">破棄する</button>
-        </div>
-      </div>
-      <button id="shareBtn" disabled>CSV を共有</button>
-      <button id="copyL" class="subBtn" disabled hidden>左足をコピー</button>
-      <button id="copyR" class="subBtn" disabled hidden>右足をコピー</button>
-    </div>
-    <div id="msg"></div>
   </section>
 
   <p style="text-align:center;font-size:.75rem;color:var(--sub);margin:16px 0 0">version 1.2.0（4センサー版）</p>
@@ -436,6 +436,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     recording = !recording;
     const b = $("recBtn");
     if (recording){
+      resetTrialIfChanged();   // 開いたまま日付が変わったときも、その日の 1 から
       Object.values(feet).forEach(f => f.rows = []);
       lastNames = {};
       const now = new Date();
@@ -520,33 +521,39 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     $("namePreview").innerHTML = "次のファイル名: <b>" + fileName("L", "<開始日時>").replace(/</g,"&lt;") + "</b>" + notes.map(t => "<br>" + t).join("");
   }
   ["size","subject","exp","trial"].forEach(id => { $(id).addEventListener("input", updatePreview); $(id).addEventListener("change", updatePreview); });
-  // 試行回数は「サイズ・被験者・実験名」の組み合わせごとに覚えておく。
-  // nobori → kudari → nobori と戻したときは、nobori の続きの番号になる（初めての組み合わせは 1）
-  const infoKey = () => [sizeStr(), subjectStr(), expBase()].join("|");
+  // 試行回数は「日付・サイズ・被験者・実験名」の組み合わせごとに覚えておく。
+  // nobori → kudari → nobori と戻したときは、nobori の続きの番号になる。
+  // 日付が変わったら 1 から（初めての組み合わせも 1）
+  const infoKey = () => [stampOf(new Date()).slice(0, 8), sizeStr(), subjectStr(), expBase()].join("|");
+  const dayOf = k => k.split("|")[0];
   function trialMap(){ try { return JSON.parse(store.get("trials") || "{}"); } catch { return {}; } }
   function rememberTrial(n, k = infoKey()){
     const m = trialMap();
-    delete m[k]; m[k] = n;                         // 最近使った組み合わせを後ろに
-    const keys = Object.keys(m);
-    keys.slice(0, Math.max(0, keys.length - 100)).forEach(x => delete m[x]);   // 古いものから捨てる
+    for (const x of Object.keys(m)) if (dayOf(x) !== dayOf(k)) delete m[x];   // 前の日の分は捨てる
+    m[k] = n;
     store.set("trials", JSON.stringify(m));
   }
   function setTrial(n){ $("trial").value = n; store.set("trial", String(n)); rememberTrial(n); updatePreview(); }
   $("trial").addEventListener("change", () => { const n = parseInt($("trial").value, 10); if (n > 0) rememberTrial(n); });
-  let lastInfoKey = infoKey();
-  if (!(lastInfoKey in trialMap())) rememberTrial(parseInt($("trial").value, 10) || 1);
+  let lastInfoKey = "";
   function resetTrialIfChanged(){
     const k = infoKey();
     if (k === lastInfoKey) return;
+    const newDay = lastInfoKey && dayOf(k) !== dayOf(lastInfoKey);
+    const first = !lastInfoKey;
     lastInfoKey = k;
     const n = trialMap()[k] || 1;                  // 入力途中の名前（nob など）は覚えない
     if ($("trial").value !== String(n)){
       $("trial").value = n; store.set("trial", String(n));
-      msg(n > 1 ? `前回の続きなので、試行回数を ${n} にしました。` : "計測情報が変わったので、試行回数を 1 にしました。");
+      if (!first) msg(newDay ? "日付が変わったので、試行回数を 1 にしました。"
+        : n > 1 ? `前回の続きなので、試行回数を ${n} にしました。` : "計測情報が変わったので、試行回数を 1 にしました。");
     }
     updatePreview();
   }
   ["size","subject","exp"].forEach(id => { $(id).addEventListener("input", resetTrialIfChanged); $(id).addEventListener("change", resetTrialIfChanged); });
+  // アプリを開いたとき・ほかのアプリから戻ったときにも、日付が変わっていないか確かめる
+  resetTrialIfChanged();
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !recording) resetTrialIfChanged(); });
   updatePreview();
 
   // ---- 今日の体重と、着用していた靴の写真 ----

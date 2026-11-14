@@ -16,6 +16,9 @@ const FOLDER_ID = "ここに保存先フォルダの ID";
 const TOKEN = "ここに合言葉";
 const WEIGHT_SHEET_NAME = "insole_体重記録";
 const SHOE_FOLDER_NAME = "insole_靴の写真";
+// 靴の写真を入れるフォルダを自分で決めるときは、そのフォルダの ID を書く（URL の folders/ のあとの英数字）。
+// 空のままなら、マイドライブ直下に SHOE_FOLDER_NAME のフォルダを自動で作る
+const SHOE_FOLDER_ID = "";
 const HEADER = ["日付", "被験者 ID", "体重 (kg)", "記録日時", "靴の写真"];
 
 // 体重・靴の写真の保存を使う前に、エディタでこの関数を選んで「実行」を一度押す。
@@ -109,17 +112,31 @@ function day_(x) {
   return { date: date, subject: subject };
 }
 
-// 同じ日付・被験者 ID の行の番号。なければ末尾に行を足す
+// 同じ日付・被験者 ID の行の番号。なければ末尾に行を足す（日付は表の上で日付として扱えるように Date で書く）
 function dayRow_(sheet, day) {
+  const tz = sheet.getParent().getSpreadsheetTimeZone();
   const rows = sheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]) === day.date && String(rows[i][1]) === day.subject) return i + 1;
+    if (ymd_(rows[i][0], tz) === day.date && String(rows[i][1]) === day.subject) return i + 1;
   }
-  sheet.appendRow([day.date, day.subject]);
+  sheet.appendRow([toDate_(day.date, tz), day.subject]);
   return sheet.getLastRow();
 }
 
+// 表の日付のセル（Date。古い行は 20261113 のような数字や文字）を "20261113" にそろえる
+function ymd_(v, tz) {
+  return v instanceof Date ? Utilities.formatDate(v, tz, "yyyyMMdd") : String(v).replace(/\D/g, "");
+}
+
+function toDate_(ymd, tz) {
+  return Utilities.parseDate(ymd, tz, "yyyyMMdd");
+}
+
 function shoeFolder_() {
+  if (SHOE_FOLDER_ID) {
+    try { return DriveApp.getFolderById(SHOE_FOLDER_ID); }
+    catch (err) { throw new Error("靴の写真のフォルダを開けません。Apps Script の SHOE_FOLDER_ID を確認してください"); }
+  }
   const props = PropertiesService.getScriptProperties();
   const id = props.getProperty("SHOE_FOLDER_ID");
   if (id) {
@@ -142,18 +159,35 @@ function weightSheet_() {
   }
   const ss = SpreadsheetApp.create(WEIGHT_SHEET_NAME);  // マイドライブ直下。共有はしない
   const sheet = ss.getSheets()[0];
-  sheet.getRange("A:B").setNumberFormat("@");  // 日付・ID を文字のまま（0001 → 1 にならないように）
+  sheet.getRange("B:B").setNumberFormat("@");  // ID を文字のまま（0001 → 1 にならないように）
   sheet.appendRow(HEADER);
   sheet.setFrozenRows(1);
   props.setProperty("WEIGHT_SHEET_ID", ss.getId());
   return withHeader_(sheet);
 }
 
-// 靴の写真の列ができる前に作った表にも、見出しを足す。
-// 記録日時は時刻まで表示する（行を先に作ってからあとで日時を書くと、日付だけの表示になることがあるため）
+// 表の形を整える。古い版で作った表もここで直る
+// - 靴の写真の列ができる前に作った表にも、見出しを足す
+// - 日付の列を日付として表示し、20261113 のような数字・文字で入っている古い行は日付に直す
+// - 記録日時は時刻まで表示する（行を先に作ってからあとで日時を書くと、日付だけの表示になることがあるため）
 function withHeader_(sheet) {
   if (sheet.getRange(1, HEADER.length).getValue() === "") sheet.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);
+  sheet.getRange("A2:A").setNumberFormat("yyyy/mm/dd");
   sheet.getRange("D2:D").setNumberFormat("yyyy/mm/dd hh:mm:ss");
+  const n = sheet.getLastRow();
+  if (n >= 2) {
+    const tz = sheet.getParent().getSpreadsheetTimeZone();
+    const range = sheet.getRange(2, 1, n - 1, 1), values = range.getValues();
+    let changed = false;
+    const fixed = values.map(([v]) => {
+      if (v instanceof Date || v === "") return [v];
+      const s = String(v).replace(/\D/g, "");
+      if (s.length !== 8) return [v];
+      changed = true;
+      return [toDate_(s, tz)];
+    });
+    if (changed) range.setValues(fixed);
+  }
   return sheet;
 }
 
