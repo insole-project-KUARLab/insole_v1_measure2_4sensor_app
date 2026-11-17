@@ -213,7 +213,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 <script src="geometry.js"></script>
 <script>
 (() => {
-  const C = window.InsoleCore, G = window.INSOLE_GEOMETRY;
+  const C = window.InsoleCore, GEOMS = window.INSOLE_GEOMETRIES;
   const DEFAULT_SVC = "5d65dfcc-996b-4376-868e-82196f0962e1";
   const DEFAULT_NOTIFY = "a8a5068c-a6f7-d44d-2c89-e77c8bd8aaba";
   // Google ドライブの受け口（Apps Script）。保存先は Apps Script 側の FOLDER_ID で決まる。合言葉はここに書かない
@@ -756,7 +756,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     }
     return out;
   })();
-  const FOOT = (() => {
+  // 計測情報のサイズに合う足型。合うものがなければ一番近いサイズ（未入力なら一番小さいサイズ）
+  function geometryFor(size){
+    const all = Object.values(GEOMS);
+    const v = parseFloat(size);
+    if (!isFinite(v)) return all[0];
+    return all.reduce((best, g) => Math.abs(parseFloat(g.size) - v) < Math.abs(parseFloat(best.size) - v) ? g : best);
+  }
+  const buildFoot = G => {
     const ol = G.outline_left;
     const pad = 30;
     const xmax = Math.max(...ol.map(p => Math.abs(p[0]))) + pad;
@@ -775,8 +782,16 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
       const img = document.createElement("canvas"); img.width = nx; img.height = ny;
       return { sign, outline, sensors, nx, ny, W, x0:xs0, y1:ys1, img, data: img.getContext("2d").createImageData(nx, ny) };
     };
-    return { xmax, ylo, yhi, L: side(1), R: side(-1) };
-  })();
+    return { size: G.size, xmax, ylo, yhi, L: side(1), R: side(-1) };
+  };
+  let FOOT = buildFoot(geometryFor($("size").value));
+  // サイズを変えたら足型を作り直す（COP の軌跡は座標が変わるので消す）
+  $("size").addEventListener("input", () => {
+    const g = geometryFor($("size").value);
+    if (g.size === FOOT.size) return;
+    FOOT = buildFoot(g);
+    Object.values(feet).forEach(f => f.trail = []);
+  });
 
   function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 
